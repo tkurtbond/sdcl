@@ -1,0 +1,22 @@
+-*-outline-*-
+
+* Don't produce an output file if a fatal error occurs.
+
+* break and next should work with labels, ala Ada & VMS BASIC.
+
+* recognize labels that begin with digits.
+
+* unlimited length lines and tokens 
+
+How can this be handled?  It isn't user-friendly to limit line and
+token lengths.  At the moment, though, we have a fairly long token
+length limit (512 characters).  Of course, DCL limits the size of a
+line to about 510 characters, so we don't really have much of a
+problem here.
+
+* Better Loop stack processing
+
+** DONE Need to report unclosed loops at end of processing.
+
+** better wording of reporting on loop stack errors
+

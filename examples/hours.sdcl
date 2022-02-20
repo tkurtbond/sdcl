@@ -1,0 +1,147 @@
+!> HOURS.SDCL -- Create time use record of hours worked for current date (v1.5)
+###############################################################################
+#
+# Program:        H O U R S . S D C L
+# Written By:     Thomas Kurt Bond
+# Version:        1.4
+# Date:           7 December 1988
+#
+# Description:
+#
+# This command procedure allows you to easily enter your hours so you can
+# have a complete record of what you did each day.
+#
+# All times may be entered in normal hours or in military hours.  Do not 
+# include "am" or "pm" in the time.  If you enter an equals sign (=) at the
+# "Start Time:" prompt, the last end time will be used as the start time.
+# If you enter an equals sign (=) at the "Description:" prompt, the last
+# description will be used as the description. When you are done entering 
+# hours just # type return to the "Start Time:" prompt.
+#
+# History
+# Version When    Who  Why
+# 1.0     120588  TKB  Initial Version 
+# 1.1     120788  TKB  Fix so 12:30 - 3:20 => 2:50
+# 1.2     121688  TKB  Add logical name for directory to store files in
+# 1.3	  121988  TKB  Fix so proper month appears in header
+# 1.4     011888  TKB  Fix so start time and description default to last
+#                      end time and description if "=" is only thing entered
+#                      for them.
+# 1.5	  011988  TKB  Fix so uses `sys$disk:[]' for default if TIME_LIB
+#		       not defined.
+###############################################################################
+    ##Set up some useful abreviations and constants
+    TRUE = (1 .eq. 1)
+    FALSE = .not. TRUE
+    wso = "write sys$output"
+    get = "read/end=End_File/error=End_file sys$command"
+    months = "January/February/March/April/May/June/July" \
+	   + "/August/September/October/November/December"
+
+    ##constants controlling the output of the lines
+    default_width = 79			#width of text in message
+    heading = "Time Use Record"		#heading of the message
+    ##the format control string for the FAO that outputs a line
+    format_string = "!8AS  !17<!AS to !AS!>  !43AS  !5AS"
+    
+    ##Find out what directory to put the output file in.
+    time_lib = f$trnlnm("TIME_LIB")
+    if (time_lib .eqs. "") {
+        root = "sys$disk:[]" 		#use current device and directory
+    } else {
+        root = time_lib			#use user defined library
+    }
+
+    ##get the current time, possible from the user
+    time = f$time()
+    get newtime /prompt="Time <''time'>? " #allow the user to specify the time
+    if (newtime .nes. "") time = newtime
+    ## nice date for header
+    nice_date = f$cvtime(time,, "weekday") + ", " \
+	      + f$cvtime(time, "absolute", "day") + " " \
+	      + f$element(f$integer(f$cvtime(time,, "month"))-1, "/", months) \
+	      + " " + f$cvtime(time,, "year")
+    ##sort time for filename
+    sort_time = f$cvtime(time, "comparison", "date") - "-" - "-"
+    ##date for each time line
+    date = f$cvtime(time,,"month") + "/" \
+	 + f$cvtime(time,,"day") + "/" \
+	 + f$extract(2, 2, f$cvtime(time,,"year"))
+
+    ##file processing
+    file_name = root + sort_time + ".time"
+    if (f$search(file_name) .nes. "") {	#append to daily file if it exists
+        open /append outf 'file_name'
+    } else {				#otherwise, create it 
+        open /write outf 'file_name'
+	##Create the header
+	write outf ""
+	i = (default_width - f$length(nice_date)) / 2
+	write outf f$fao("!''i'* !AS", nice_date)
+	i = (default_width - f$length(heading)) / 2
+	write outf f$fao("!''i'* !AS", heading)
+	write outf f$fao("!''default_width'*=")
+    }
+
+    ##loop until no more information to get from user
+    last_end_time    = ""	#init saved data to null
+    last_description = ""
+    for (get start_time /prompt="Start Time:  ";
+	 start_time .nes. "";
+	 get start_time /prompt="Start Time:  ")
+    {
+	start_time = f$edit(start_time, "compress")
+        if (start_time .eqs. "=") {
+	    start_time = last_end_time
+	    wso "        Start Time is: ", start_time
+	}
+
+	##get times and descriptions from user
+	get end_time    /prompt="End Time:    "
+	end_time = f$edit(end_time, "compress")
+	last_end_time = end_time
+
+	get description /prompt="Description: "
+	if (f$edit(description, "compress") .eqs. "=") {
+	    description = last_description
+	    wso "     Description is: ", description
+	} else {
+	    last_description = description
+	}
+
+	##figure out duration
+	st_len = f$length(start_time)
+	et_len = f$length(end_time)
+	i = f$locate(".", start_time)
+	if (i .ne. st_len) start_time[i*8, 8] = 58 #ascii value of ":"
+	j = f$locate(".", end_time)
+	if (j .ne. et_len) end_time[j*8, 8] = 58 #ascii value of ":"
+	i = f$locate(":", start_time)
+	j = f$locate(":", end_time)
+
+	st_hours = f$integer(f$extract(0, i, start_time))
+	st_minutes = f$integer(f$extract(i+1, st_len, start_time))
+	et_hours = f$integer(f$extract(0, j, end_time))
+        if (et_hours .lt. st_hours) 
+            et_hours = et_hours + 12    #fix so 3:30 - 12:30 => 4:00
+	et_minutes = f$integer(f$extract(j+1, et_len, end_time))
+	temp_dur = ((et_hours * 60) + et_minutes) \
+		 - ((st_hours * 60) + st_minutes)
+        duration = f$fao("!2ZL:!2ZL", temp_dur / 60, \
+	    temp_dur - ((temp_dur / 60) * 60))
+
+	##format and write line
+	#write sys$output f$fao("St_hours: !SL!/St_Minutes: !SL!/Et_hours: !SL!/Et_minutes: !SL!/Duration: !AS", st_hours, st_minutes, et_hours, et_minutes, duration)
+	write outf f$fao(format_string, date, start_time, \
+	    end_time, description, duration)
+    }
+
+    close outf
+    
+The_End:
+    exit
+
+End_File:
+    write sys$error "report: end of file or error on input, exiting..."
+    close outf
+    exit

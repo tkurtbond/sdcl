@@ -1,0 +1,68 @@
+
+codes.h,0
+
+lextab.h,0
+
+sdcl.h,0
+
+getopt.c,53
+exchange 196,8874
+getopt 255,11345
+main 421,15472
+
+lex.c,271
+#define addchar(58,1672
+#define getch(19,525
+#define getclass(50,1432
+gettoken(76,2005
+identify(158,3783
+initlex(30,946
+#define killtok(70,1907
+#define lexstateout(40,1147
+#define lexstateout(44,1298
+#define newchar(24,798
+scan(139,3407
+scan_tok_eol(191,4409
+
+output.c,92
+putch(22,584
+putlabel(66,1434
+putstr(41,1045
+putstr_unbroken(56,1315
+puttarget(78,1591
+
+parser.c,341
+break_stmt(129,2432
+compound_stmt(429,9410
+condition(40,740
+dcl_stmt(481,10775
+do_stmt(168,3477
+for_stmt(256,5378
+genlab(26,552
+ident_stmt(446,9802
+if_stmt(208,4437
+initialize(73,1349
+next_stmt(309,6610
+other_stmt(493,10965
+program(552,11970
+reinitialize(87,1591
+repeat_stmt(347,7594
+statement(510,11354
+while_stmt(393,8570
+
+sdcl.c,130
+error(158,4088
+error_line(201,4663
+error_plain(186,4454
+getoutname(222,5287
+main(44,1271
+message(174,4322
+warning(143,3849
+
+stack.c,54
+depth(31,704
+peek(87,1741
+pop(63,1288
+push(40,816
+
+version.c,0

@@ -1,0 +1,14 @@
+# Something like the following, a do-loop without a while, causes
+# everything after the first `}' ends up in the condition part of the
+# generated if.  Here is the example input:
+do {
+}
+here
+{
+  {
+  }
+  {
+# Here is the example output:
+# $ 23000: 
+# $ 23001: if (here{ { } {) then goto 23000
+# $ 23002: 

@@ -1,0 +1,193 @@
+Sun Feb 20 13:50:12 2022  T. Kurt Bond  (TKB at MPLVAX)
+
+        * README.RST: Renamed AAAREADME.1ST to README.RST, so GitHub will
+        recognize it.  Added links to MMK and SSTG.
+
+        * SDCL.SCN: Update comments in preparation for uploading to
+        GitHub.
+
+        * DESCRIP.MMS.  Change CLEAN target to not delete SDCL.TABLE,
+        CODES.H, and LEXTAB.H, so SDCL can be built without SSTG.  Add
+        REALCLEAN target that *does* delete them.
+
+Fri Feb 18 14:30:30 2022  T. Kurt Bond  (TKB at MPLVAX)
+
+        * DESCRIP.MMS: Created in preparation for uploading to GitHub.
+
+        * SDCL.TABLE, CODES.H, LEXTAB.H: Generated new versions for
+        comparison to ensure the completed version fo SSTG_TO_C.SCM worked
+        correctly.
+
+Thu Feb 17 15:30:03 2022  T. Kurt Bond  (TKB at MPLVAX)
+
+        * sdcl.man: added details on recognition of SDCL keywords and
+        braces, and multiple line initialize and reinitialize clauses
+        in for loops.
+
+Thu Nov  7 11:20:19 1991  T. Kurt Bond  (TKB at _MPL)
+
+        * Version 1.5.1 released.
+
+Fri Aug  9 16:33:03 1991  T. Kurt Bond  (TKB at _MPL)
+
+        * parser.c: added case for TC_ELSE in `compound_stmt()' that
+        outputs an error message (an ELSE should normally only be found
+        after an if, in which case it will be processed in `if_stmt()').
+        Added reporting of line number where an unclosed loop or compound
+        statement starts.
+
+        * sdcl.c: added call to `ioinit()' in `main()' to do io
+        redirection and expand wildcards.
+
+Fri Mar 23 17:07:46 1990    (TKB at MPL)
+
+        * parser.c: add new production, `ident_stmt()', which allows SDCL
+        to recognize SDCL constructs after identifier labels.  Before,
+        SDCL didn't recognize labels, so the whole line was classified as
+        an `other' statement, and any SDCL constructs on that line were not
+        recognized.  Now, SDCL recognizes that an identifier followed by a
+        colon (optionally seperated by whitespace), where the colon is not
+        part of a `:=', is a label, so it can recognize SDCL constructs on
+        lines after a label.
+
+        * sdcl.scn: Add LT_COLON and LT_EQUAL, so scanner can return
+        TC_COLON or TC_ASSIGN, allowing parser to recognize labels.
+
+Wed Mar 21 12:52:58 1990    (TKB at MPL)
+
+        * sdcl.c: change so total number of lines is output only if there
+        are more than one files processed.
+
+        * sdcl.scn: Add character class LT_BANG, token code TC_OTHER, and
+        state 22, which together allows the scanner to return a DCL
+        comment as a single token, thus avoiding the error where a long
+        DCL comment is broken over two lines since the comment was treated as a
+        normal sequence of `other' statements.  Note: LEXTAB.H and CODES.H
+        are automatically generated from SDCL.SCN.
+
+Thu Sep 14 09:05:03 1989    (TKB at MPL)
+
+        * Version 1.4 released.
+
+        * sdcl.man: update for new '//' syntax.
+
+        * parser.c: Change `dcl_stmt()' to only output the current token,
+        since DCL statements (statements starting with `//' and continuing
+        to the end of the line) are now returned as a single token.
+
+        * lex.c: Add `killtok()' macro to empty the current token, for the
+        AC_KILLGET action.  Add AC_KILLGET to case statement that handles
+        actions. 
+
+        * codes.h lextab.h: These files are now produced by a scanner
+        table generator, from `sdcl.scn'.  The scanner table generator
+        reads a file containing the definitions for a FSM lexical
+        analyser, and produces the tables to drive the lexical analyser
+        and the necessary #define's for token codes, etc.
+
+Mon Jul 24 13:31:09 1989    (TKB at MPL)
+
+        * lex.c codes.h lextab.h: Change `LC_' to `LT_', since `LC_' is
+        reserved by the Draft ANSI C Standard for macros dealing with
+        locales. 
+
+Wed Jul 19 15:32:27 1989    (TKB at MPL)
+
+        * sdcl.c: Add call to macro `va_end(ap)' to `warning()',
+        `error()', `message()', `error_plain()', `error_line()' after call
+        to function `vfprintf()'.
+
+Tue Jul 18 16:02:43 1989    (TKB at MPL)
+
+        * Add `-b' option to prohibit breaking of long lines into multiple
+        physical lines using DCL line continuation conventions.  Changed
+        sdcl.c:`main()' and output.c:`putstr()' to set and look at the
+        flag `break_lines_flag'.
+
+Fri Jul 14 10:17:27 1989    (TKB at MPL)
+
+        * Version 1.3 released.
+
+        * lex.c: Add `scan_tok_eol()' for use with "break <int>" and
+        "next <int>" forms.
+
+        * stack.c: Change `peek()' to return correct item from stack (it
+        wasn't stepping down through the stack properly) and got rid of
+        error message in `peek()' when it was called to look at something
+        that was deeper than the stack was deep (underflow), since
+        that condition causes a FALSE to be returned that the calling
+        function can test.
+
+        * parser.c: Change `break_stmt()' and `next_stmt()' to handling
+        constructs like "break 2" and "next 5".  The integer *must* be on
+        the same line as the "break" or "next".
+
+        Change `dcl_line()' to `dcl_stmt()'.
+
+        * sdcl.c: Add function `error_line()', which is like `error()'
+        except that it takes as its parameter the line number to use when
+        reporting the the error.  Used in `break_stmt()' and `next_stmt()'
+        where the line number may be off due to looking ahead for an
+        option integer count.
+
+        * lextab.c: Change `char_to_class[]' so '%' is undefined and '?'
+        is `LC_QUESTION'.
+
+        * codes.h: Change `LC_PERCENT' to `LC_QUESTION' and `TC_DCLLINE'
+        to `TC_DCLSTMT'.  This makes is so we can use '?' instead of '%'
+        to indicate a statement that is to be passed through to the output
+        file relatively untouched.  Since this is actually a statement
+        rather than a line, we will call it such.
+
+Thu Jul 13 13:29:37 1989    (TKB at MPL)
+
+        * Version 1.2 released.
+
+        * lex.c: Add "until" to list of keywords in `identify()' so it
+        will be recognized as a keyword by the lexical analysis.
+
+Fri May 19 18:22:25 1989    (TKB at MPL)
+
+        * parser.c: Change `break()' and `next()' to use new version of
+        `peek()'.
+
+        * stack.c: Change arrangement of the stack so that a count of
+        items is kept up-to-date.  Change `peek()' to take a new
+        parameter, indicating the depth of the item to peek at.
+
+Fri Apr 21 18:50:05 1989    (TKB at MPL)
+
+        * Version 1.1 released.
+        
+        * sdcl.c and version.c: changed `version' to `version_string'.
+
+        * sdcl.c (main): add reporting of input and output lines per file
+        when `-v' option is used.  Input line numbers are now added into
+        the total correctly (line numbers start at 1, so after EOF they
+        are always one too many).
+
+        * lex.c: Defined `newchar()' to get a new character when needed
+        and hide the incrementing of line numbers if the last character
+        was a newline.  This is to ensure that input line numbers are
+        correct in error messages. Previously the input line numbers in
+        error messages were often incorrect because the input line number
+        was only being incremented when a newline TOKEN was being returned
+        (stupid, stupid), but newlines on backslash continued lines were
+        NOT being counted.
+
+        * output.c: Make `putstr' output white-space before the
+        continuation character when it finds it necessary to break a long
+        line. Make `putstr' add linebreaks inserted by the continuation of
+        long lines to the output line counter, so that the number of lines
+        output is correct.
+
+Tue Apr 11 20:40:34 1989    (TKB at MPL)
+
+        * Version 1.0 of SDCL in C released.  Supports break, do-while
+        loop, for loop, if-else, repeat loop, while loop, and lines
+        relatively untouched by SDCL.
+
+
+Local Variables:
+fill-prefix: "        "
+End:

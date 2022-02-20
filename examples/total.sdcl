@@ -1,0 +1,80 @@
+!> TOTAL.SDCL -- Total up the hours in 'root'yyyymmdd.TIME (v1.1)
+###############################################################################
+# Description:
+#
+# TOTAL [alternate-date] [alternate-directory]
+#
+# If you specify an alternate date, TOTAL looks for the file for that date.
+# If you specify an alternate directory, TOTAL looks for the file in that 
+# directory.
+#
+# History, most recent first
+# Vers   When    Who  Why
+# 1.0    120688  TKB  Initial Version 
+# 1.1	 011989  TKB  Change to use TIME_LIB logical name as default for
+#		      where to find file.
+###############################################################################
+    sort_date = f$cvtime(p1,, "date") - "-" - "-" - "-" 
+
+    ##Find out what directory to put the output file in.
+    if (p2 .nes. "") {			#user specified alternate root
+        root = p2
+    } else {				#use defaults
+	time_lib = f$trnlnm("TIME_LIB")
+	if (time_lib .eqs. "") {
+	    root = "sys$disk:[]"	#use current device and directory
+	} else {
+	    root = time_lib		#use user defined library
+	}
+    }
+        
+
+    filename = root + sort_date + ".time"
+    if (f$search(filename) .eqs. "") {
+        write sys$output "total: error, file does not exist, ", filename
+	exit
+    }
+
+    ##open file 
+    open/read/error=Cant_Open inf 'filename'
+    ##read header
+    read inf line /end=Error_Reading /err=Error_Reading
+    while (f$locate("=====", line) .eq. f$length(line)) {
+	 read inf line /end=Error_Reading /err=Error_Reading
+	 ##write sys$output line
+    }
+
+    ##read and total hours
+    hours = 0
+    minutes = 0
+    total = 0
+    ##write sys$output "Starting to total..."
+    repeat {
+        read inf line /end=End_File /err=Error_Reading
+	##write sys$output line
+	if (f$locate("=====", line) .ne. f$length(line))
+	    break			#this is the total line
+	##write sys$output "Hours: ", f$extract(74, 2, line)
+	hours = f$integer(f$extract(74, 2, line))
+	##write sys$output "Minutes: ", f$extract(77, 2, line)
+	minutes = f$integer(f$extract(77, 2, line))
+	total = total + (hours * 60) + minutes
+    }
+End_File:
+    total_hours = total / 60
+    total_minutes = total - (total_hours * 60)
+    write sys$output f$fao("Total: !2ZL:!2ZL", total_hours, total_minutes)
+
+    close inf
+The_End:
+    exit
+
+
+Cant_Open:
+    write sys$output "total: error opening file, ", filename
+    exit
+
+Error_Reading:
+    write sys$output "total: error reading file, ", filename
+    close inf
+    exit

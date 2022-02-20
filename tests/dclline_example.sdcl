@@ -1,0 +1,5 @@
+if (this)
+   //this is a dcl line     x
+else 
+   //this is also a dcl line	x
+exit

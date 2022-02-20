@@ -1,0 +1,7 @@
+for (i = 0
+     s = ""; 
+     i .lt. 10;
+     i = i + 1
+     s = s + ".")
+    write sys$output "i: ", i, " s: ", s
+write sys$output "at end: i: ", i, " s: ", s

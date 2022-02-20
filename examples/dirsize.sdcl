@@ -1,0 +1,213 @@
+###############################################################################
+###                      
+### Program:        D I R S I Z E . S D C L
+### Written By:     Thomas Kurt Bond
+###
+### Description:	
+### 
+### DIRSIZE reports the size of files in a directory and all lower directories.
+### Its only advantage over ``DIR/SIZE=ALL/TOTAL [DIR...]'' is the fact that
+### it lists both the total size of files in a directory and the total size
+### of all files in all subdirectories of that directory.  This allows you
+### to easily see what *directory trees* hold the most files, while 
+### DIR/SIZE/TOTAL only allows you to see what *directories* hold
+### the most files.
+###
+### DIRSIZE's main disadvantage is its incredible slowness, due to its
+### implementation as a command procedure.  Some speed gains probably
+### could be realized by converting it to Plain DCL (which would cut down
+### on the number of GOTO's).  However, that would make it even harder to
+### read than it is now.  To get serious performance improvements, it would
+### be necessary to recode it in a compiled language.
+###
+### DIRSIZE is modeled on DELTREE.COM, which was written by C. Paul
+### Bond.  It uses recursion, but instead of using a recursively
+### CALL'ed SUBROUTINE it uses several explicit stacks to hold the
+### context information.
+### 
+### History:
+### Ver     When    Who  What
+### 1.00    071588  tkb  Initial Version.
+### 1.01    081188  tkb  Use f$fao to line output up in columns.
+### 2.0     052289  tkb  Change to new SDCL syntax, add verify handling.
+###############################################################################
+    verifying = 'f$verify(f$type(dirsize_verify) .nes. "")'
+    !> DIRSIZE.SDCL -- Show total size of directory and all subdirectories.
+    true = (1 .eq. 1)
+    false = .not. true
+    debug = true
+
+    ##Valid Options List (in uppercase because dcl upcases command line)
+    opt_list = "/OUTPUT/SORT/"
+    opt_list_len = f$length(opt_list)
+
+    ##set up default options 
+    do_output = false
+    do_sort = false
+
+    ##Options always start at p1 
+    i = 1
+    ##Process options till none left 
+    while (f$extract(0, 1, p'i') .eqs. "-") {
+	opt = p'i'
+	which = f$extract(1, 3, opt)
+	ok = (f$locate("/" + which, opt_list) .ne. opt_list_len) .and. \
+	     (which .nes. "")
+	if (ok) 
+	    gosub OPT$'which'
+	else
+	    write sys$output "Invalid Option: ''opt'"
+	i = i + 1
+    }
+
+    ##deal with results of options 
+    if (do_sort .and. .not. do_output) {
+        write sys$output "dirsize: cannot sort if output file not specified"
+	goto The_End
+    }
+    if (.not. do_output)
+        output = "sys$output"
+    else {
+        if (f$parse(output_file) .eqs. "") {
+	    write sys$output "dirsize: invalid filename specified: ", \
+		  output_file
+	    goto The_End
+	}
+	
+	output = "outputfile"
+        if (do_sort) {
+	    outfile = f$parse(output_file, , , "device") \
+	           + f$parse(output_file, , , "directory") \
+		   + f$parse(output_file, , , "name") \
+		   + "." + f$getjpi("", "pid") + "_dirsize"
+	    open 'output' 'outfile'/write/error=Cannot_Open_File
+	} else {
+	    open 'output' 'output_file'/write/error=Cannot_Open_File
+	}
+    }
+
+    StartDir = p'i'			
+    if (StartDir .eqs. "")		#Get the directory to start in 
+        inquire StartDir "_Starting Directory"
+    if (StartDir .eqs. "")		#since nothing to do 
+        exit (1 .or. (f$verify(verifying) .and. 0))
+
+    DevSpec = f$parse(StartDir,,,"device")
+    DirSpec = f$parse(StartDir,,,"directory") - "[" - "]"
+                                                         
+    ##Make sure the information for the first directory level 
+    ##is pushed onto the stack 
+    
+    Top = 1				#No. of Levels in Stack,
+					# top of stack pointer 
+    DirSpec_'Top' = DirSpec		#First directory level 
+    TotalSize_'Top' = 0			#Total size for first directory level 
+    
+    ##Traverse the directories, starting at the top and working to the 
+    ##bottom, then report the directories from the bottom up, since
+    ##we need to know the size of all subdirectories to report on the 
+    ##directory we are intersted in.
+    
+    repeat {				#Exit by break 
+       FileSpec = f$search(DevSpec + "[" + DirSpec + "]*.dir;1", Top)
+       FileSpec = f$parse(FileSpec,,,"name")
+       if (FileSpec .eqs. "000000")	#Skip Master Directory     
+           next				
+       if (FileSpec .nes. "") {		#push directory on stack   
+          Top = Top + 1			#increment stack pointer   
+	  DirSpec_'Top' = DirSpec	#put old spec on stack     
+	  DirSpec = DirSpec + "." \
+	      + FileSpec		#step down into new subdir 
+          if (f$type(TotalSize_'Top') .eqs. "") {
+             ##Initialize total size for this directory level, 
+             ##since this is the first directory on this level. 
+             TotalSize_'Top' = 0
+          }
+	  next				#start the search in this new subdir 
+       }
+
+       if (Top .eq. 1) break		#Only the last directory is on stack 
+
+       ##No more directories found at this level, so total files at
+       ##this level and then pop this directory from the stack
+       
+       if (Top .ge. 0) {		
+           gosub DoCurrentLevel		#Total & print info for this level 
+	   DirSpec = DirSpec_'Top'      #pop directory from stack 
+	   Top = Top - 1                
+      	   next				#search for more dirs in new dir 
+       }
+
+       ##Something Went Very Wrong if we get here...
+       write sys$output "dirsize: Stack Underflow!"
+       goto Close_Files
+   }					#while 
+
+   gosub DoCurrentLevel			#Total & print info for top level 
+
+Close_Files:
+    if (do_output) {
+        close 'output'
+        if (do_sort) {
+            sort 'outfile' 'output_file'/spec=sys$input
+///collating=(seq=ascii,mod=("["=" ", "."=" ", "]"=" "))
+            delete 'outfile'.0
+	}
+    }
+
+The_End:
+   exit	(1 .or. (f$verify(verifying) .and. 0))	#At last 
+   
+Cannot_Open_File:
+   write sys$output "dirsize: cannot open output file"
+   exit (1 .or. (f$verify(verifying) .and. 0))
+
+### DoCurrentLevel -- Sum and print file sizes for this directory level.
+###     Print total sizes of subdirectories, if any.
+DoCurrentLevel:
+    Spec = DevSpec + "[" + DirSpec + "]"
+    DirSize_'Top' = 0			#holds accumulated size of files in dir
+    FileName = f$search(Spec + "*.*;*")
+    while (FileName .nes. "") {
+        DirSize_'Top' = DirSize_'Top' + f$file(FileName, "ALQ") 
+	FileName = f$search(Spec + "*.*;*")
+    }                    
+    TopPlus1 = Top + 1			#Pointer to previous level 
+    if (f$type(TotalSize_'TopPlus1') .eqs. "") {
+       ##A lower level directory did not exist, so no total from it 
+       write 'output' f$fao( \
+           " !44<[!AS]!> Size: !8SL", DirSpec, DirSize_'Top' )
+       TotalSize_'Top' = TotalSize_'Top' + DirSize_'Top'
+    } else {
+       ##A lower level direcotory did exist, so must use total from it 
+       write 'output' f$fao( \
+           " !44<[!AS]!> Size: !8SL Sub: !8SL", \
+	   DirSpec, DirSize_'Top', TotalSize_'TopPlus1' )
+       TotalSize_'Top' = TotalSize_'Top' + DirSize_'Top' + \
+           TotalSize_'TopPlus1'
+       delete/symbol TotalSize_'TopPlus1' #since leaving it around causes 
+                                          #mistakes in totaling 
+    }
+    return				#end DoCurrentLevel 
+
+
+###############################################################################
+###Command Line option procedures
+###############################################################################
+
+
+###output option -- name of output file 
+OPT$out:
+    do_output = true
+    p = f$locate("=", opt)
+    l = f$length(opt)
+    if (p .ne. l)
+        output_file = f$extract(p+1, l, opt)
+    else
+        output_file = ""
+    return ! from OPT$out, the output option
+
+###sort option -- sort the output file  
+OPT$sor:
+    do_sort = true
+    return ! from OPT$sor, the sort option

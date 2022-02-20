@@ -1,0 +1,66 @@
+# The control structures are pretty flexible about being broken over 
+# multiple lines.
+
+wso :== write sys$output
+if (cond)
+    wso "then"
+else
+    wso "else"
+
+if (cond)
+{
+    wso "compound then"
+} 
+else 
+{
+    wso "compound else"
+}
+
+
+# Cuddled braces work fine.
+if (cond) {
+    wso "cuddled braces compound then"
+} else {
+    wso "cuddled braces compound else"
+}
+
+# This is illegal because the else keyword is not recognized as it is not
+# the first word of a DCL command.
+#if (cond) if (cond2) wso "inside cond2 true" else wso "inside cond2 false"
+# So is this
+#if (cond) { wso "1-line if compound true" } else { wso "1-line if compound false" }
+
+
+while (cond)
+    wso "while body"
+
+while (cond)
+{
+    wso "compound while body"
+}
+
+for (i = 1; i .lt 10; i = i + 1)
+    wso "for body"
+
+for (i = 1; i .lt 10; i = i + 1)
+{
+    wso "compound for body"
+}
+
+do 
+    wso "do body"
+while (cond)
+
+do wso "do body on same line as do"
+while (cond)
+
+# This is illegal.
+#do wso "do body on same line as do" while (cond)
+
+do
+{
+    wso "compound do body"
+} 
+while (cond)
+
+

@@ -1,0 +1,303 @@
+-*-Outline-*-
+
+* SDCL Macro processing (SDCLM for short)
+
+Refers only to the processing of macros, which happens before the
+translation of SDCL control structures to DCL if-then-goto constructs.
+
+** Integration into SDCL
+
+*** Seperate Program or Pass
+
+Less efficient (two image activations).  However, much simpler and
+quicker to implement since would not need to worry about the SDCL code
+generation part.  Also easier to change, since needn't worry about
+side effects on the SDCLC
+
+*** Part of SDCL 
+
+Probably more efficient, since it would mean code (for gettoken, for
+instance) and data could be shared and there would only be one image
+activation.  However, it would be considerably more complex (since the
+code and the data would be shared!).
+
+** include
+include "filename"  looks for that exact filename and no other
+include <filename>  looks for that file in library directories
+include filename    check if filename is a macro, then look for the
+		    expansion as one of above.
+
+** macros
+
+What form should be used for defining macros?  When should the macros
+be processed (like SWTOOLS or CPP)?
+
+How can the user join two macro expansions without a space between
+them? In other words, 
+defmac(x,1)
+defmac(y,2)
+xy --> xy
+x y --> 1 2
+We want 12.
+x<>y --> 12    since the quote characters are stripped and there is
+no text between them...
+
+*** defmac(name(parameters), replacement text)
+
+1. defmac(name, ) no parameters, no () required
+2. defmac(name(), ) no parameters, () required
+3. defmac(name(parameters), ) parameters required
+
+Reasonably close match to SWTOOLS style macros, although that
+closeness might be confusing.  Nicer because it allows named
+parameters instead of the `$n' notation.
+
+*** defmac(name, replacement text) 
+
+Straight SWTOOLS style macros, would require `$n' style parameters which
+would not be as nice as named parameters.
+
+*** defmac name(parameters) (replacement text)
+defmac name(parameters) {replacement text}
+
+Not a close match to SWTOOLS style macros.
+
+*** vax macro style
+defmac name parameter-list            
+    replacement text		
+endmacro
+
+Not a close match to SWTOOLS macros, and not as general, since it
+would not allow any in-line macros.
+
+** conditional preprocessing
+
+if
+else
+endif
+elseif
+ifdef
+ifndef
+
+How can we use these without conflicting with the SDCL control
+structures?  We cannot use #<directive>
+
+** Software Tools style macros (SWTP, p 305)
+
+These allow using the macros as a programming language, which makes it
+very powerful, if somewhat convoluted...  Perhaps should see about
+adding some other structures, such as loop() (cut down on recursion).
+
+*** ifelse(a, b, c, d)
+
+*** expr(e) 
+
+with +, -, *, /, %, & (and), | (or), ~ (not) <, >, <=, >=, ~=
+
+*** substr(s, m, n)
+
+*** len(s)
+
+*** changeq() 
+
+quote characters normally <>, since their only use in DCL is TOPS-20
+style directory names.
+
+** New SWTOOLS style macros
+
+*** string(s) 
+
+Convert s into a quoted DCL string that ends up as a TC_STRING.
+
+I don't think this will require any mucking about with internals, just
+push the result back on the input and rescan it.
+
+
+** notes
+
+SDCL does not  consider `{'  or  `}' (or  for  that  matter,  any SDCL
+construct)  significate if they do  not start   a statement  (in other
+words, either follow a SDCL construct or the beginning of a line.  For
+instance, the SDCL statements
+
+    if (p1) { write sys$output "p1: ", p1 }
+    else { write sys$output "not p1: ", p1 } 
+
+are translated to
+
+    $ if (.not.(p1)) then goto 23000
+    $ write sys$output "p1: ", p1 }
+    $ else { write sys$output "not p1: ", p1 }
+    $ 23000: 
+
+instead of 
+
+    $ if (.not.(p1)) then goto 23000
+    $ write sys$output "p1: ", p1
+    $ goto 23001
+    $ 23000: 
+    $ write sys$output "not p1: ", p1
+    $ 23001: 
+
+This happens because SDCL classifies a statement by  the first part of
+the statement.   If the statement  is anything but `other',  it parses
+out the SDCL control structure and goes back to  look at the following
+statement. If it is an other, it reads to the end of the line and goes
+back  to look at   the following statement.   In other  words,  if the
+statement is an `other', only  the end of  the line is  the end of the
+statement.   Therefore, a `}'  in  an `other'  is just    part of  the
+statement.
+
+It might  be  nice to make `{'  and  `}' recognized in others,  so you
+could do things like
+
+    if (x) { this } else { that }
+
+on one line.  I don't know if it would be worth it, though.
+
+* New SDCL
+
+*** labels
+
+The  label construct is _extremely_ important.   Note that DCL accepts
+`[a-z0-9_][a-z0-9_$]*[ \t]*:' as  a  label,  but  that  is  probably a
+little too  complex   at the moment,  since without  we only  need one
+character  look-head,   and  with    it we  need  indefinite-character
+look-ahead.
+
+Actually, we need at least two character look-ahead, since 
+	label:=x
+is not a label and
+	label: x
+is one.  (i.e., need lookahead to see if ":" following, and another to
+see if "=" follows that, in which case it is *not* a label.)
+
+
+*** comments
+
+Old sdcl  uses "/*" and "*/"  for  comments and squeezes them all out,
+replacing them by the null string.
+
+New sdcl  uses "#" to start a  comment which  ends at  the  end of the
+line. Comments  are   stripped by  gettoken   and  replaced by TC_EOL,
+end-of-line.
+
+*** strings
+
+**** Change to not break strings at `""'
+
+Currently, SDCL will break a  string at an  embedded `""'  in order to
+insert a continuation line, thinking it to be two strings.  SDCL needs
+to understand this  facet of DCL strings.   (done: gettoken recognizes
+such strings)
+
+**** Change to never break a string across lines
+
+Also, the continuation characters are  inserted anywhere in  the line,
+once the line is too long, even  inside strings.  Teach  it to _never_
+break strings.  This problem is due to the fact that output is done by
+a  single-character   output  routine  that automatically   inserts  a
+continuation character if the buffer  is about to fill up,  regardless
+of  what it  is  in the middle  of.  emitstring, which  is supposed to
+prevent this, actually  uses this output  routine, partially defeating
+its purpose.
+
+**** strings ended by end of line
+
+DCL allows strings to be ended by end of line, i.e.
+
+    $ write sys$output "hello, world
+
+is valid  DCL.  Should SDCL  allow  this as well?  It  wouldn't be too
+difficult, would it? (done: gettoken just continues to  the end of the
+line.   ???Perhaps  it  should  return  a  message  about unterminated
+strings that would be output, or just output the message itself. Also,
+should  it add the terminating  quotes itself?  Probably not... should
+be the last thing on the line anyway.)
+
+*** problems with symbol substitution 
+
+**** don't break 'symbol'
+
+SDCL should not insert a continuation  symbol in a 'symbol' construct,
+because DCL thinks that  the continuation symbol marks  the end of the
+substitution.  This will require treating (') somewhat like (").  (???
+change getstring to accept a second parameter to  indicate the type of
+quote to use.  But see next item for why not.)
+
+**** end of word terminates ' substitution
+
+Substitution started with (') does not require and ending ('), since a
+space   character (and  perhaps  others?) will stop the  substitution.
+Here is an example:
+
+    $ symbol = "[this]
+    $ x := 'symbol 'symbol
+    $ sho sym x
+    X = "[THIS] [THIS]"
+
+So, will SDCL have to recognize this? Or should we just say "that is a
+sloppy feature  that we don't  think  anyone  should use, so we  don't
+allow it"?
+
+**** Substitution using (&)
+
+Symbols substitued using (&) can be continued  on a new  line with the
+DCL continuation character, so we don't have to worry about them.
+
+*** text preprocessing: #`facility'
+
+It would be  very nice to  have this  sort of facility.  How difficult
+would  it be  add this?  Should it  be a seperate  (previous) pass, or
+part of the main program?
+
+**** Change meaning of # 
+
+Currently, # means leave line  alone.  If  text preprocessing is added
+this will have to  be changed so that  #dcl  at front of line  emits a
+line untouched,  which will allow  us to use #  as the  lead-in to the
+preprocessor directives.  Also, should allow  any amount of whitespace
+before a # directive (old SDCL allows it).
+
+**** #dcl
+
+Should this emit the rest  of the line  completely untouched, or strip
+out comments as the current one does? Or should  we have two different
+versions, one which strips comments, one that doesn't?
+
+**** #include file 
+
+It would be nice to have some sort of #include  facility.   If this is
+added, should set up a directory search path of some sort  to look for
+include files in (like the <file> of C)?
+
+**** macro definitions
+
+#define #ifdef #ifnotdef
+
+How  hard would  it be to implement a  #define?  Would it be worth it?
+Would have to do much  more parsing.  Implement as completely seperate
+pass?  If not defines for general text, at least allow #ifdef  and #if
+XXX | YYY type usages so we can have conditional processing of text.
+
+**** conditional processing of source
+
+#if #else #elseif #endif 
+
+Investigate possibility  of #if   #else #endif.  If  not  defines  for
+general text, at least allow #ifdef  and #if XXX |  YYY type usages so
+we can have conditional processing of text.
+
+*** repeat ... until, do ... while
+
+It would be nice to have repeat until, but not essential.  However, if
+don't have  repeat ... until, at  least make the  while part of the do
+...  while optional, so  the loop  is infinite if ommited.  Or perhaps
+make the repeat not have an until at all, like Icon.
+
+** Sources
+
+SDCL
+C-preprocessor
+SWTools macro
+

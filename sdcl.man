@@ -1,0 +1,208 @@
+Name
+
+        sdcl -- Structured DCL preprocessor
+
+Synopsis
+
+        sdcl [-v] [-b] [-o outfile] [input-files ...]
+
+Description
+
+        SDCL is a structured DCL preprocessor, in the tradition of
+        RATFOR: it adds several control structures to DCL, such as
+        break statement, do-while loops, the if-else statement, the
+        next statement, repeat loops, and while loops.
+
+        Options:
+
+        `-v'    Produce verbose output.
+
+        `-o'    Specifies the output file name, which must follow it
+                immediately or seperated by whitespace.
+
+        `-b'    Do not insert DCL line continuation sequences in long
+                lines.  By default, SDCL inserts continuation
+                sequences to break long lines into seperate physical
+                lines for readability.
+
+        Input and Output Files:
+
+        If no output file is specified, each input file is processed
+        and written out seperately to files in the current directory.
+        These files have the same name as their corresponding input
+        file, except that `.com' is substituted for whatever followed
+        the last period in the input file name.  If an output file is
+        specified, all the input files are processed and all the
+        results are written out to the specified output file.  If no
+        input files are specified, the standard input is read.  If no
+        input files are specified and no output file is specified, the
+        input is taken from the standard input and the output is
+        written to the standard output, allowing SDCL to be used as a
+        filter in a pipe.
+
+        Unix-style i/o redirection using "<", ">", ">>", "2>", and
+        "2>>".  is supported, as are VMS wildcards.
+
+        SDCL Language:
+
+        The BNF for SDCL is as follows; the non-terminals are in angle
+        brackets (<>).
+
+        <program>   : <statement>
+                    | <program> <statement>
+        <statement> : if (<condition>) <statement>
+                    | if (<condition>) <statement> else <statement>
+                    | while (<condition>) <statement>
+                    | for (<intialize> ; <condition> ; <reinitalize>)
+                          <statement>
+                    | do <statement> while (<condition>)
+                    | repeat <statement> until (<condition>)
+                    | repeat <statement>
+                    | break <integer>
+                    | break
+                    | next <integer>
+                    | next
+                    | { <program> }
+                    | <label>: <statement>
+                    | <other>
+
+        Notes:
+
+        * Lines do not start with the dollar sign ($), unlike DCL.
+
+        * Comments start with the pound sign (#) and extend to the end
+        of the line.
+
+        * Labels consist of a letter or underscore followed by zero or
+        more letters, dollar signs, digits, or underscores.
+        Whitespace may seperate the label from the colon, but the
+        colon must be on the same line as the label.  Note that in the
+        statement
+
+                ds :== dir/size=all/width=(filename=40)
+
+        the `ds :' is *NOT* a label, because the colon is part of the
+        `:==' token.  SDCL handles this case correctly as one
+        statement, not as a label followed by a statement beginning
+        with `=='.
+
+        * Note that SDCL does not recognize the DCL label `100$:'
+        because it starts with a digit, rather than a letter or
+        underscore, so any SDCL constructs that appear on that line
+        will not be recognized.  Such labels may still be used, but
+        they must not appear on the same line as an SDCL construct.
+
+        * Multiple statements can be enclosed between braces ({}) to
+        make a compound statement.
+        
+        * SDCL keywords and braces are only recognized as the first
+	word of a DCL command.  This means that
+
+	if (cond) if (cond2) write sys$output "inside cond2 true"
+
+	is legal, but 
+
+	if (cond) if (cond2) write sys$output "inside cond2 true " else write sys$output "inside cond2 false"
+
+	is not legal, because the else keyword is not recognized.
+
+	It also means that
+
+	if (cond) { write sys$output "inside cond true" } else { write sys$output "inside cond false" }
+
+	is not legal because the first "}" is not recognized.
+
+	(Otherwise you couldn't use keywords or braces in DCL commands
+	in SDCL, like write sys$output "{here!}")
+
+        * Multiple line <initialize> and <reinitialize> clauses in a 
+        for loop are legal, like this:
+
+        for (i = 0
+             s = ""; 
+             i .lt. 10;
+             i = i + 1
+             s = s + ".")
+            write sys$output "i: ", i, " s: ", s
+        write sys$output "at end: i: ", i, " s: ", s
+
+        * The break statement without an integer argument exits the
+        immediately enclosing loop.  With an integer argument of n, it
+        exits the n'th enclosing loop.  The integer argument MUST be
+        on the same line as the `break'.  (Rationale: that way the
+        SDCL doesn't go looking across lines and possibly finding the
+        integer that begins a label on the next line.)
+
+        * The next statement without an integer argument starts the
+        next iteration of the immediately enclosing loop, starting at
+        the test of the continuation condition for the loop, if any.
+        With an integer argument of n, it starts the next iteration of
+        the n'th enclosing loop.  The integer argument MUST be on the
+        same line as the `next'. (Rationale: that way the SDCL doesn't
+        go looking across lines and possibly finding the integer that
+        begins a label on the next line.)
+
+        * The repeat loop without an until part repeats forever.
+
+        * <other> statements are anything not otherwise recognized by
+        SDCL.  If SDCL does not recognize the first token in a
+        statement, that statement is assumed to be an <other>, and
+        tokens are output until the end of the statement (which is the
+        end of the logical line, taking into account backslash line
+        continuation).  The statement is emitted preceded by a dollar
+        sign ($) and with appropriate continuation lines if it is more
+        than 80 characters long.
+
+        * Lines may be continued with the backslash character (\). A
+        backslash followed by whitespace (blanks or tabs, possibly
+        including a comment after the first whitespace character) and
+        a newline indicates that the line is continued.  If the
+        whitespace is terminated by anything other than a newline, the
+        intervening backslash and whitespace are ignored.  Do not use
+        the dash (-) as the continuation character, as it doesn't mean
+        anything to SDCL.
+
+        * Inside SDCL control structures (such as the <condition> part
+        of a loop) the backslash continuation character need not be
+        used because SDCL knows to continue over lines until the end
+        of the structure.
+
+        * Statements starting with two slashes ('//') are called DCL
+        statements and extend to the next newline. They are output
+        without a preceeding dollar sign ($) and without squashing
+        spaces and tabs to one space.
+
+        * If '//' is encountered as part of an <other> statement,
+        everything from the '//' to the end of the line is output as
+        part of the <other> statment without further processing by
+        SDCL (without squashing spaces and tabs to one space).
+
+        * The special significance of characters such as the
+        backslash, etc., can be eliminated by preceding them with a
+        backslash.  If a backslash followed by a non-whitespace
+        character is encountered, the backslash is ignored and the
+        following character is treated as a normal character despite
+        any special meaning it may have elsewhere to SDCL.
+
+Bugs
+
+        Lines are limited to 512 characters.  Tokens are limited to
+        512 characters.  DCL statements ('//' lines) are limited to
+        512 characters.  <reinitalize> sequences are limited to 512
+        characters.  Except for the last, these limits aren't a
+        serious problem, since DCL's line buffer is shorter than that.
+
+        Error reporting is primitive.
+
+        Only labels that start with letters or underscores and contain
+        only letters, underscores, dollar signs, and digits are
+        recognized.
+
+Authors
+
+        The original SDCL was written by Sohail Aslam, of the
+        University of Colorado at Colorado Springs, and is available
+        from the DECUS program library as VAX-143.
+
+        This version was completely rewritten from scratch by Thomas
+        Kurt Bond, with additions and changes to the SDCL syntax.

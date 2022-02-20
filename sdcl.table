@@ -1,0 +1,1309 @@
+:creator  "sstg"
+
+:version  2.0
+
+:source  "sdcl.scn"
+
+:classes  20
+	lt_backslash  0
+	lt_bang  1
+	lt_cbrace  2
+	lt_colon  3
+	lt_cparen  4
+	lt_digit  5
+	lt_dollar  6
+	lt_eof  7
+	lt_eol  8
+	lt_equal  9
+	lt_letter  10
+	lt_obrace  11
+	lt_oparen  12
+	lt_slash  13
+	lt_pound  14
+	lt_dquote  15
+	lt_semi  16
+	lt_space  17
+	lt_under  18
+	lt_undefined  19
+
+:chartoclass  128
+	lt_undefined  0
+	lt_undefined  1
+	lt_undefined  2
+	lt_undefined  3
+	lt_undefined  4
+	lt_undefined  5
+	lt_undefined  6
+	lt_undefined  7
+	lt_undefined  8
+	lt_space  9
+	lt_eol  10
+	lt_undefined  11
+	lt_space  12
+	lt_undefined  13
+	lt_undefined  14
+	lt_undefined  15
+	lt_undefined  16
+	lt_undefined  17
+	lt_undefined  18
+	lt_undefined  19
+	lt_undefined  20
+	lt_undefined  21
+	lt_undefined  22
+	lt_undefined  23
+	lt_undefined  24
+	lt_undefined  25
+	lt_undefined  26
+	lt_undefined  27
+	lt_undefined  28
+	lt_undefined  29
+	lt_undefined  30
+	lt_undefined  31
+	lt_space  32
+	lt_bang  33
+	lt_dquote  34
+	lt_pound  35
+	lt_dollar  36
+	lt_undefined  37
+	lt_undefined  38
+	lt_undefined  39
+	lt_oparen  40
+	lt_cparen  41
+	lt_undefined  42
+	lt_undefined  43
+	lt_undefined  44
+	lt_undefined  45
+	lt_undefined  46
+	lt_slash  47
+	lt_digit  48
+	lt_digit  49
+	lt_digit  50
+	lt_digit  51
+	lt_digit  52
+	lt_digit  53
+	lt_digit  54
+	lt_digit  55
+	lt_digit  56
+	lt_digit  57
+	lt_colon  58
+	lt_semi  59
+	lt_undefined  60
+	lt_equal  61
+	lt_undefined  62
+	lt_undefined  63
+	lt_undefined  64
+	lt_letter  65
+	lt_letter  66
+	lt_letter  67
+	lt_letter  68
+	lt_letter  69
+	lt_letter  70
+	lt_letter  71
+	lt_letter  72
+	lt_letter  73
+	lt_letter  74
+	lt_letter  75
+	lt_letter  76
+	lt_letter  77
+	lt_letter  78
+	lt_letter  79
+	lt_letter  80
+	lt_letter  81
+	lt_letter  82
+	lt_letter  83
+	lt_letter  84
+	lt_letter  85
+	lt_letter  86
+	lt_letter  87
+	lt_letter  88
+	lt_letter  89
+	lt_letter  90
+	lt_undefined  91
+	lt_backslash  92
+	lt_undefined  93
+	lt_undefined  94
+	lt_under  95
+	lt_undefined  96
+	lt_letter  97
+	lt_letter  98
+	lt_letter  99
+	lt_letter  100
+	lt_letter  101
+	lt_letter  102
+	lt_letter  103
+	lt_letter  104
+	lt_letter  105
+	lt_letter  106
+	lt_letter  107
+	lt_letter  108
+	lt_letter  109
+	lt_letter  110
+	lt_letter  111
+	lt_letter  112
+	lt_letter  113
+	lt_letter  114
+	lt_letter  115
+	lt_letter  116
+	lt_letter  117
+	lt_letter  118
+	lt_letter  119
+	lt_letter  120
+	lt_letter  121
+	lt_letter  122
+	lt_obrace  123
+	lt_undefined  124
+	lt_cbrace  125
+	lt_undefined  126
+	lt_undefined  127
+
+:actions  7
+	ac_addget  0
+	ac_ignget  1
+	ac_ignnop  2
+	ac_ignerr  3
+	ac_igninl  4
+	ac_blkget  5
+	ac_kilget  6
+
+:tokens  28
+	tc_assign  0
+	tc_colon  1
+	tc_eof  2
+	tc_eol  3
+	tc_ident  4
+	tc_integer  5
+	tc_label  6
+	tc_single  7
+	tc_space  8
+	tc_string  9
+	tc_cbrace  10
+	tc_cparen  11
+	tc_dclstmt  12
+	tc_obrace  13
+	tc_oparen  14
+	tc_other  15
+	tc_quoted  16
+	tc_semi  17
+	tc_break  18
+	tc_do  19
+	tc_else  20
+	tc_for  21
+	tc_if  22
+	tc_next  23
+	tc_repeat  24
+	tc_until  25
+	tc_while  26
+	tc_unknown  27
+
+:returns  25
+	tc_unknown  0
+	tc_unknown  1
+	tc_eof  2
+	tc_eol  3
+	tc_ident  4
+	tc_space  5
+	tc_string  6
+	tc_string  7
+	tc_obrace  8
+	tc_cbrace  9
+	tc_oparen  10
+	tc_cparen  11
+	tc_unknown  12
+	tc_unknown  13
+	tc_unknown  14
+	tc_quoted  15
+	tc_integer  16
+	tc_single  17
+	tc_semi  18
+	tc_eol  19
+	tc_single  20
+	tc_dclstmt  21
+	tc_other  22
+	tc_colon  23
+	tc_assign  24
+
+:errors  25
+	"transition from accept state"  0
+	"improper action"  1
+	"improper action"  2
+	"improper action"  3
+	"improper action"  4
+	"improper action"  5
+	"unterminated string"  6
+	"improper action"  7
+	"improper action"  8
+	"improper action"  9
+	"improper action"  10
+	"improper action"  11
+	"unexpected end of file after continuation character"  12
+	"unexpected end of file after continuation character"  13
+	"unexpected end of file after continuation character"  14
+	"improper action"  15
+	"improper action"  16
+	"improper action"  17
+	"improper action"  18
+	"improper action"  19
+	"improper action"  20
+	"improper action"  21
+	"improper action"  22
+	"improper action"  23
+	"improper action"  24
+
+:start  st_start  1
+
+:accept  st_accept  0
+
+:goto-matrix  25  20
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+
+	12
+	22
+	9
+	23
+	11
+	16
+	20
+	2
+	3
+	20
+	4
+	8
+	10
+	17
+	19
+	6
+	18
+	5
+	4
+	20
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	4
+	4
+	0
+	0
+	0
+	4
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	4
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	5
+	0
+	0
+
+	6
+	6
+	6
+	6
+	6
+	6
+	6
+	0
+	0
+	6
+	6
+	6
+	6
+	6
+	6
+	7
+	6
+	6
+	6
+	6
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	6
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	15
+	15
+	15
+	15
+	15
+	15
+	15
+	1
+	13
+	15
+	15
+	15
+	15
+	15
+	15
+	15
+	15
+	13
+	15
+	15
+
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	1
+	13
+	1
+	1
+	1
+	1
+	1
+	14
+	1
+	1
+	13
+	1
+	1
+
+	14
+	14
+	14
+	14
+	14
+	14
+	14
+	1
+	13
+	14
+	14
+	14
+	14
+	14
+	14
+	14
+	14
+	14
+	14
+	14
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	16
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	21
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	19
+	19
+	19
+	19
+	19
+	19
+	19
+	0
+	0
+	19
+	19
+	19
+	19
+	19
+	19
+	19
+	19
+	19
+	19
+	19
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	21
+	21
+	21
+	21
+	21
+	21
+	21
+	0
+	0
+	21
+	21
+	21
+	21
+	21
+	21
+	21
+	21
+	21
+	21
+	21
+
+	22
+	22
+	22
+	22
+	22
+	22
+	22
+	0
+	0
+	22
+	22
+	22
+	22
+	22
+	22
+	22
+	22
+	22
+	22
+	22
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	24
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+	0
+
+
+:action-matrix  25  20
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+	ac_ignerr
+
+	ac_ignget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignnop
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignget
+	ac_addget
+	ac_addget
+	ac_blkget
+	ac_addget
+	ac_addget
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignget
+	ac_ignnop
+	ac_ignnop
+
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignerr
+	ac_ignerr
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignerr
+	ac_ignget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignget
+	ac_addget
+	ac_addget
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignerr
+	ac_ignget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignget
+	ac_ignnop
+	ac_ignnop
+	ac_ignget
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignerr
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_kilget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_igninl
+	ac_addget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+	ac_ignget
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+	ac_addget
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_addget
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+	ac_ignnop
+
+

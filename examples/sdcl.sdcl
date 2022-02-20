@@ -1,0 +1,158 @@
+###############################################################################
+#                      
+# Program:        S D C L . S D C L
+# Written By:     C. Paul Bond and T. Kurt Bond
+# Version:        2.00
+# Date:           12-October-1988
+#
+# Description:	
+#
+# This short sdcl program provides a default name for
+# the sdcl pre-processor.
+#
+# History:
+# Ver     When    Who  What
+# 1.00    ??????  cpb  Initial version
+# 2.00    101288  tkb  Handle wild-cards and more than one file-spec, new SDCL
+###############################################################################
+!> SDCL.SDCL  -- provide default name and extension for the SDCL preprocessor
+    verify_on = f$verify(0)
+    ##Set up global constants
+    TRUE  = (1 .eq. 1)
+    FALSE = .not. TRUE
+    wso   = "write sys$output "
+    wse	  = "write sys$error "
+    inq   = "inquire/nopun "
+    debug = TRUE
+    sdcl_processor = "$exe_lib:sdcl"
+
+    ##setup
+    current_directory = f$environment("default")
+    temp_file_name_pattern = "SDCL_" + f$getjpi("", "pid")
+    temp_file_name = temp_file_name_pattern + ".tmp"
+
+    ##Valid Options List (in uppercase because dcl upcases command line) 
+    opt_list = "/BATCH/COM/"
+    opt_list_len = f$length(opt_list)
+
+    ##initialize default options
+    batch = FALSE
+    com_file = FALSE
+   
+    ##Process options till none left
+    i = 1				#Options start with first parameter
+    while (f$extract(0, 1, p'i') .eqs. "-") {
+        opt = p'i'
+        which = f$extract(1, 3, opt)
+        ok = (f$locate("/" + which, opt_list) .ne. opt_list_len) .and. \
+             (which .nes. "")
+        if (ok) 
+            gosub OPT$'which'
+        else
+            write sys$output "Invalid Option: ''opt'"
+        i = i + 1
+    }
+   
+    ## concatenate all possible parameters into one string
+    list = ""
+    for (j = i; j .le. 8; j = j + 1) {
+        if (p'j' .eqs. "") break	#no more filenames
+	list = list + p'j'
+    }
+    
+    ##Deal with omitted file name 
+    if (list .eqs. "") list = f$trnlnm("EDIT_FILE")
+    if (list .eqs. "") inq list "_File: "
+    if (list .eqs. "") exit
+
+    ##add a leading comma for f$element()
+    list = "," + f$edit(list, "lowercase,collapse")
+
+    ##get rid of all plus signs, replace with comma so f$element() works
+    length = f$length(list)
+    for (p = f$locate("+", list); p .ne. length; p = f$locate("+",  list)) {
+        list[p*8, 8] = 44		#overlay "+" with "," (ascii 44)
+    }
+
+    ##open files if -com or -batch
+    if (batch .or. com_file) {
+        open/write outf 'temp_file_name'
+	write outf "$!> ", f$edit(temp_file_name, "upcase"), " -- Compile SDCL"
+	write outf "$! Time: ", f$time()
+    }
+    
+    ##process files
+    i = 1
+    fspec = f$element(i, ",", list)	#get first file spec from list
+    if (batch .or. com_file) {
+        log_file = f$parse(f$search(fspec, 1), , , "name")
+	if (log_file .eqs. "") {
+	    log_file = temp_file_name_pattern + ".log"
+	    wse "sdcl: no log file name; using """, log_file
+	}
+	    
+    }
+    while (fspec .nes. ",") {		#there are more file specs
+        if (fspec  .eqs.  "") {
+	    wso "sdcl: null file specified"
+        }
+	fspec = f$parse(fspec, ".sdcl")	#add extension if none specified
+	##process fspec, including any wild-carded file-specs.
+	file = f$search(fspec)
+	while (file .nes. "") {
+	    temp = file			#save to compare to next
+            write sys$output "Processing ", f$parse(file,,,"name")
+	    if (batch .or. com_file) {
+	        write outf "$ sdcl ", file
+	    } else {
+	        if (debug) 
+		    wso "SDCL ", file
+		else 
+	            sdcl_processor 'file'
+	    }
+	    file = f$search(fspec)
+	    if (file .eqs. temp)	#if same, no wildcard in fspec, 
+	        break			# so go to next fspec
+	}				#end of while
+	##get next file-spec from the list
+        i = i + 1
+        fspec = f$element(i, ",", list)
+    }
+
+    ##finish off file 
+    if (batch .or. com_file) {
+        write outf "$! End of SDCLing"
+	write outf "$ The_End:"
+	write outf "$        exit"
+        close outf
+	if (.not. debug) {
+	    if (batch) {
+	        submit/delete/noprint/log='current_directory''log_file' \
+		    'temp_file_name'
+	    } else {
+	        @'temp_file_name'
+		delete 'temp_file_name';*
+	    }
+	}
+    }
+
+The_End:
+    if (verify_on) set verify
+    exit
+
+
+###############################################################################
+# Options:
+###############################################################################
+
+# -batch option
+# write com file to SDCL on batch queue and submit it
+OPT$bat:
+    batch = TRUE
+    return # end of -batch option
+
+# -com option
+# write com file to SDCL and execute it
+OPT$com:
+    com_file = TRUE
+    return # end of -com option

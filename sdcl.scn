@@ -1,0 +1,220 @@
+;;; -*-lisp-*- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; sdcl.scn -- scanner table definitions for SDCL; Version 1.5.
+;;;
+;;; This file is used to produce the include files to define various codes
+;;; used by the scanner and the parser, and the FSM tables used by the scanner.
+;;;
+;;; This file is a description of the Finite State Machine that drives
+;;; the lexical analyser of SDCL.  When processed by SSTG.LSP (or
+;;; SSTG.SCM) and SSTG_TO_C.LSP (or SSTG_TO_C.SCM) it produces a file
+;;; that contains constant definitions and another file that contains
+;;; the declarations of the various tables used by the Finite State
+;;; Machine in the lexical analyser.  Since that code is generated
+;;; from a description by a program, the programmer does not have to
+;;; build the tables himself or herself, which eliminates a LOT of
+;;; tedious work.  It also allows changes to be made to the FSM easily
+;;; and painlessly.
+;;; 
+;;; 2022 Note: DESCRIP.MMS includes rules for bulding SDCL.TABLE, CODES.H, 
+;;; and LEXTAB.C from SDCL.SCN using SSTG.SCM and SSTG_TO_C.SCM.
+;;;
+;;; Original directions for building CODES.H and LEXTAB.H with XLISP 1.7:
+;;;
+;;; To generate new versions of the scanner table and/or constants, follow
+;;; these steps:
+;;; 
+;;; Make the changes in this file, after saving the old version
+;;; somewhere safe.
+;;;
+;;; Get into XLISP 1.7 and issue the following commands:
+;;;     (load "sstg" t)  
+;;;     (gen-scantab "sdcl.scn" "sdcl.table")
+;;;     (load "sstg_to_c" t)
+;;;     (sstg-to-c "sdcl.table" "codes.h" "lextab.h")
+;;;
+;;; If you don't have XLISP 1.7, it shouldn't be too difficult to port
+;;; SSTG.LSP and SSTG-C.LSP to another LISP.  
+;;;
+;;; 2022 Note: and in fact I ported it mostly to SCM, a R4RS Scheme
+;;; that ran on the VAX back in 1992ish.  The current version I use on
+;;; the VAX/VMS 5.5-2 system I maintain is SCM4c0.
+;;;
+;;; Get into SCM4c0 and issue the following commands:
+;;;     (load "sstg")  
+;;;     (gen-scantab "sdcl.scn" "sdcl.table")
+;;;     (load "sstg_to_c")
+;;;     (sstg-to-c "sdcl.table" "codes.h" "lextab.h")
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;; Character classes
+(classes (LT_BACKSLASH #\\)
+	 (LT_BANG      #\!)		;for comments
+	 (LT_CBRACE    #\})
+	 (LT_COLON     #\:)		;for := and labels
+	 (LT_CPAREN    #\))
+	 (LT_DIGIT     (#\0 #\9))
+	 (LT_DOLLAR    #\$)
+	 (LT_EOF       special)
+	 (LT_EOL       10)
+	 (LT_EQUAL     #\=)		;for := 
+	 (LT_LETTER    (#\A #\Z) (#\a #\z))
+	 (LT_OBRACE    #\{)
+	 (LT_OPAREN    #\()
+	 (LT_SLASH     #\/)
+	 (LT_POUND     #\#)
+	 (LT_DQUOTE    #\")
+	 (LT_SEMI      #\;)
+	 (LT_SPACE     32 12 9)		;space, formfeed, tab
+	 (LT_UNDER     #\_)
+	 (LT_UNDEFINED others))
+
+;; The actions that the scanner can take, depending on current char and state
+(actions AC_ADDGET			;AG add char to token and get new char
+	 AC_IGNGET			;IG ingore char and get new one
+	 AC_IGNNOP			;IC ingore char and do not get new char
+	 AC_IGNERR			;IE ignore char and issue error message
+	 AC_IGNINL			;NL ignore char and add a '\n' to token
+	 AC_BLKGET			;BG add blank to token and get new char
+	 AC_KILGET			;KG kill token and get a new char
+	 )
+
+
+;; The names for the tokens that the scanner can return.
+;; Note: TC_COLON and TC_ASSIGN are used to let the *parser* figure out if
+;; a statement starts with a label.  If you can't do it easily in the scanner,
+;; do it in the parser!
+
+(tokens TC_ASSIGN
+	TC_COLON
+	TC_EOF
+	TC_EOL
+	TC_IDENT
+	TC_INTEGER
+	TC_LABEL
+	TC_SINGLE
+	TC_SPACE
+	TC_STRING
+	TC_CBRACE
+	TC_CPAREN
+	TC_DCLSTMT
+	TC_OBRACE
+	TC_OPAREN
+	TC_OTHER
+	TC_QUOTED
+	TC_SEMI
+	;; Keywords, which are not actually recogized by the FSM, but
+	;; by a helper function in the scanner, `identify()', which is
+	;; called for each identifier.
+	TC_BREAK
+	TC_DO
+	TC_ELSE
+	TC_FOR
+	TC_IF
+	TC_NEXT
+	TC_REPEAT
+	TC_UNTIL
+	TC_WHILE
+	TC_UNKNOWN)
+
+
+;; The desciption of the FSM states and what actions to perform in each
+;; state for each character class
+(states (0 TC_UNKNOWN "transition from accept state"
+	   (others AC_IGNERR 1))
+	(1 TC_UNKNOWN nil
+	   (LT_EOF AC_IGNNOP 2)
+	   (LT_EOL AC_ADDGET 3) 
+	   (LT_LETTER AC_ADDGET 4)
+	   (LT_UNDER AC_ADDGET 4)
+	   (LT_SPACE AC_BLKGET 5)
+	   (LT_DQUOTE AC_ADDGET 6)
+	   (LT_OBRACE AC_ADDGET 8)
+	   (LT_CBRACE AC_ADDGET 9)
+	   (LT_OPAREN AC_ADDGET 10)
+	   (LT_CPAREN AC_ADDGET 11)
+	   (LT_BACKSLASH AC_IGNGET 12)
+	   (LT_DIGIT AC_ADDGET 16)
+	   (LT_SLASH AC_ADDGET 17)
+	   (LT_SEMI AC_ADDGET 18)
+	   (LT_POUND AC_IGNGET 19)
+	   (LT_DOLLAR AC_ADDGET 20)
+	   (LT_COLON AC_ADDGET 23)
+	   (LT_BANG AC_ADDGET 22)
+	   (LT_EQUAL AC_ADDGET 20)
+	   (LT_UNDEFINED AC_ADDGET 20)
+	   (others AC_IGNNOP 0))
+	(2 TC_EOF nil
+	   (others AC_IGNNOP 0))
+	(3 TC_EOL nil
+	   (others AC_IGNNOP 0))
+	(4 TC_IDENT nil
+	   ((LT_LETTER LT_DOLLAR LT_DIGIT LT_UNDER) AC_ADDGET 4)
+	   (others AC_IGNNOP 0))
+	(5 TC_SPACE nil
+	   (LT_SPACE AC_IGNGET 5)
+	   (others AC_IGNNOP 0))
+	(6 TC_STRING "unterminated string"
+	   (LT_DQUOTE AC_ADDGET 7)
+	   ((LT_EOF LT_EOL) AC_IGNERR 0)
+	   (others AC_ADDGET 6))
+	(7 TC_STRING nil
+	   (LT_DQUOTE AC_ADDGET 6)
+	   (others AC_IGNNOP 0))
+	(8 TC_OBRACE nil
+	   (others AC_IGNNOP 0))
+	(9 TC_CBRACE nil
+	   (others AC_IGNNOP 0))
+	(10 TC_OPAREN nil
+	    (others AC_IGNNOP 0))
+	(11 TC_CPAREN nil
+	    (others AC_IGNNOP 0))
+	(12 TC_UNKNOWN "unexpected end of file after continuation character"
+	    ((LT_EOL LT_SPACE) AC_IGNGET 13)
+	    (LT_EOF AC_IGNERR 1)
+	    (others AC_ADDGET 15))
+	(13 TC_UNKNOWN "unexpected end of file after continuation character"
+	    ((LT_EOL LT_SPACE) AC_IGNGET 13)
+	    (LT_EOF AC_IGNERR 1)
+	    (LT_POUND AC_IGNGET 14)
+	    (others AC_IGNNOP 1))
+	(14 TC_UNKNOWN "unexpected end of file after continuation character"
+	    (LT_EOF AC_IGNERR 1)
+	    (LT_EOL AC_IGNGET 13)
+	    (others AC_IGNGET 14))
+	(15 TC_QUOTED nil
+	    (others AC_IGNNOP 0))
+	(16 TC_INTEGER nil
+	    (LT_DIGIT AC_ADDGET 16)
+	    (others AC_IGNNOP 0))
+	(17 TC_SINGLE nil
+	    (LT_SLASH AC_KILGET 21)	;'/' followed by '/' is TC_DCLSTMT
+	    (others AC_IGNNOP 0))	;anything else is TC_SINGLE ('/')
+	(18 TC_SEMI nil
+	    (others AC_IGNNOP 0))
+	(19 TC_EOL nil
+	    (LT_EOL AC_ADDGET 0)
+	    (LT_EOF AC_IGNINL 0)
+	    (others AC_IGNGET 19))
+	(20 TC_SINGLE nil
+	    (others AC_IGNNOP 0))
+	(21 TC_DCLSTMT nil
+	    (LT_EOL AC_IGNNOP 0)	;so EOL is left to be next token
+	    (LT_EOF AC_IGNNOP 0)	;so EOF is left to be next token
+	    (others AC_ADDGET 21))
+	(22 TC_OTHER nil		;Handle DCL comment as one token
+	    (LT_EOL AC_IGNNOP 0)	;so EOL is left to be next token
+	    (LT_EOF AC_IGNNOP 0)	;so EOF is left to be next token
+	    (others AC_ADDGET 22))
+	(23 TC_COLON nil
+	    (LT_EQUAL AC_ADDGET 24)	;part of :=
+	    (others AC_IGNNOP 0))	;so anything else is used next time
+	(24 TC_ASSIGN nil
+	    (others AC_IGNNOP 0))	;return this identified as :=
+	)
+
+(start 1 ST_START)			;the start state and its name
+(accept 0 ST_ACCEPT)			;the accept state and its name
+
+end					;no more input

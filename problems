@@ -1,0 +1,43 @@
+-*-text-*-
+			  Problems with SDCL
+
+
+1.  When breaking lines, SDCL inserts the line continuation before the
+whitespace, which might sometimes be a problem.  (but so did the old sdcl.)
+[Fixed]
+
+2.  Line numbers of errors and input line totals can be severly
+erroneous.  (Probably due to continued lines not being added in, nor
+newlines in commented continued lines.)  Investiage the treatement of
+new lines in the lex box. [Fixed]
+
+3.  Normal DCL comments (<other> to SDCL) which cause a line to be
+more than 80 characters are continued as if they were normal SDCL
+statements.  This is an error.  (Old SDCL also had this problem.)
+[Fixed]
+
+As an example, the following line
+    this is a long line xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ! this is a comment which makes the line longer than 80 characters
+is translated as 
+    $ this is a long line xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ! this is a -
+    comment which makes the line longer than 80 characters
+Which is horribly wrong, since  DCL ingores everything after the `!'
+and so doesn't continue the line.
+
+This was fixed by recognizing the exclaimation mark, reading to the
+end of the line, and returning the entire thing as a single token of
+type TC_OTHER.  This required changing the lexical analyser, adding an
+lexical input code and some new states to the FSM.
+
+4.  Number of lines output is incorrect. [Fixed]
+
+5.  `until' keyword not recognized as keyword. [Fixed]
+
+6.  DCL Lines.  Just the concept is a problem; however, the immediate
+problem is that the blanks get squashed out. [Fixed]
+
+7.  Labels are not recognized, and are treated as <other> statements,
+so SDCL statements are not recognized after labels. [Fixed, although
+not all DCL labels are recognized.]
+
+

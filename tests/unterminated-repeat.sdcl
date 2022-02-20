@@ -1,0 +1,4 @@
+repeat {
+    write sys$output "outer repeat body"
+    repeat {
+        write sys$output "inner repeat body"
