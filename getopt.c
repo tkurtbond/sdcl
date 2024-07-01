@@ -109,6 +109,8 @@ what you give them.   Help stamp out software-hoarding!  */
    they can distinguish the relative order of options and other arguments.  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* For communication from `getopt' to the caller.
    When `getopt' finds an option that takes an argument,
@@ -198,20 +200,21 @@ exchange (argv)
 {
   int nonopts_size
     = (last_nonopt - first_nonopt) * sizeof (char *);
-  char **temp = (char **) alloca (nonopts_size);
+  char **temp = (char **) malloc (nonopts_size);
 
   /* Interchange the two blocks of data in argv.  */
 
-  bcopy (&argv[first_nonopt], temp, nonopts_size);
-  bcopy (&argv[last_nonopt], &argv[first_nonopt],
-	 (optind - last_nonopt) * sizeof (char *));
-  bcopy (temp, &argv[first_nonopt + optind - last_nonopt],
-	 nonopts_size);
+  memmove (temp, &argv[first_nonopt], nonopts_size);
+  memmove (&argv[first_nonopt], &argv[last_nonopt], 
+           (optind - last_nonopt) * sizeof (char *));
+  memmove (&argv[first_nonopt + optind - last_nonopt], temp,
+           nonopts_size);
 
   /* Update records for the slots the non-options now occupy.  */
 
   first_nonopt += (optind - last_nonopt);
   last_nonopt = optind;
+  free (temp);
 }
 
 /* Scan elements of ARGV (whose length is ARGC) for option characters
@@ -351,7 +354,7 @@ getopt (argc, argv, optstring)
 
   {
     char c = *nextchar++;
-    char *temp = (char *) index (optstring, c);
+    char *temp = (char *) strchr (optstring, c);
 
     /* Increment `optind' when we start to process its last character.  */
     if (*nextchar == 0)

@@ -4,7 +4,7 @@ Name
 
 Synopsis
 
-        sdcl [-v] [-b] [-o outfile] [input-files ...]
+        sdcl  [-b] [-h] [-v] [-o outfile] [input-files ...]
 
 Description
 
@@ -15,15 +15,17 @@ Description
 
         Options:
 
-        `-v'    Produce verbose output.
-
-        `-o'    Specifies the output file name, which must follow it
-                immediately or seperated by whitespace.
-
-        `-b'    Do not insert DCL line continuation sequences in long
+        -b      Do not insert DCL line continuation sequences in long
                 lines.  By default, SDCL inserts continuation
                 sequences to break long lines into seperate physical
                 lines for readability.
+
+        -h      Show the help message.
+
+        -o      Specifies the output file name, which must follow it
+                immediately or seperated by whitespace.
+
+        -v      Produce verbose output.
 
         Input and Output Files:
 

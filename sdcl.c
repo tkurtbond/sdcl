@@ -1,10 +1,10 @@
 /* sdcl.c -- this file contains the main function and several other functions
    used in several places */
 
-#include "stdlib.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <strings.h>
+#include <string.h>
 
 #include "sdcl.h"
 
@@ -28,7 +28,6 @@ int errorcount = 0;		/* number of errors */
 
 /* flags */
 int break_lines_flag = TRUE;	/* normally we insert line continuation */
-int debug_flag = FALSE;		/* don't normally need debug info */
 int out_flag = FALSE;		/* normally get output name from input name */
 int verbose_flag = FALSE;	/* print more information */
 
@@ -39,7 +38,9 @@ extern int getopt(int, char **, char *);
 extern char *optarg;
 extern int optind;
 
-char *getoutname(char *);	/* forward declaraction */
+char *getoutname(char *);	/* forward declaration */
+void usage (void);
+
 
 main(argc, argv)
     int argc;
@@ -54,14 +55,14 @@ main(argc, argv)
 #endif
 
     optind = 0;			/* init for getopt */
-    while ((c = getopt(argc, argv, "bdvo:")) != EOF) {
+    while ((c = getopt(argc, argv, "bho:v")) != EOF) {
 	switch (c) {
 	case 'b':
 	    break_lines_flag = 0;	/* don't break long lines */
 	    break;
-	case 'd':
-	    debug_flag = 1;
-	    break;
+        case 'h':
+            usage ();
+            break;
 	case 'v':
 	    verbose_flag = 1;
 	    break;
@@ -115,8 +116,8 @@ main(argc, argv)
 
 	/* reports some statistics for the current file */
 	if (verbose_flag) {
-	    message("%8d input lines from %s\n"
-		    "%8d output lines written to %s\n\n",
+	    message("%8d input lines from %s\n\
+%8d output lines written to %s\n\n",
 		    (inlineno - 1), infilename, outlineno, outfilename);
 	}
 	/* record some statistics for possible total, and re-init counters */
@@ -138,8 +139,8 @@ main(argc, argv)
 	    message("%d error(s)\n", errorcount);
     }
     if (errorcount)
-	return EXIT_FAILURE;
-    return EXIT_SUCCESS;
+	exit(EXIT_FAILURE);
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -229,14 +230,14 @@ getoutname(char *s)
     char *start, *end, *t;
     int len;
 
-    if (start = rindex(s, ']'))
+    if (start = strrchr(s, ']'))
 	start++;		/* start with next char */
-    else if (start = rindex(s, ':'))
+    else if (start = strrchr(s, ':'))
 	start++;		/* start with next char */
     else			/* no logical or directory, use whole name */
 	start = s;
-    if (!(end = rindex(start, '.')))
-	end = index(start, '\0');
+    if (!(end = strrchr(start, '.')))
+	end = strchr(start, '\0');
 
     len = (int) end - (int) start;
     if (!(t = malloc(len + 5))) {	/* serious error, not enough memory */
@@ -247,4 +248,44 @@ getoutname(char *s)
     t[0] = 0;
     strcat(strncat(t, start, len), ".com");
     return t;
+}
+
+void
+usage (void)
+{
+    fprintf(stderr,
+            "usage: sdcl [-b] [-v] [-h] [-o outfile] [infiles ...]\n\
+\n\
+Options:\n\
+\n\
+        -b      Do not insert DCL line continuation sequences in long\n\
+                lines.  By default, SDCL inserts continuation\n\
+                sequences to break long lines into seperate physical\n\
+                lines for readability.\n\
+\n\
+        -h      Show the help message.\n\
+\n\
+        -o      Specifies the output file name, which must follow it\n\
+                immediately or seperated by whitespace.\n\
+\n\
+        -v      Produce verbose output.\n\
+\n\
+        Input and Output Files:\n\
+\n\
+        If no output file is specified, each input file is processed\n\
+        and written out seperately to files in the current directory.\n\
+        These files have the same name as their corresponding input\n\
+        file, except that `.com' is substituted for whatever followed\n\
+        the last period in the input file name.  If an output file is\n\
+        specified, all the input files are processed and all the\n\
+        results are written out to the specified output file.  If no\n\
+        input files are specified, the standard input is read.  If no\n\
+        input files are specified and no output file is specified, the\n\
+        input is taken from the standard input and the output is\n\
+        written to the standard output, allowing SDCL to be used as a\n\
+        filter in a pipe.\n\
+\n\
+        Unix-style i/o redirection using \"<\", \">\", \">>\", \"2>\", and\n\
+        \"2>>\".  is supported, as are VMS wildcards.\n");
+    exit (EXIT_SUCCESS);
 }

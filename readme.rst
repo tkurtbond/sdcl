@@ -14,12 +14,12 @@ where `dev' is the device SDCL is on and `dir' is the directory it is
 in.  
 
 To rebuild SDCL just execute the file BUILD_SDCL.COM (which assumes
-you are using the VAX/VMS C Compiler; if you are using the GNU C
+you are using the VAX C Compiler; if you are using the GNU C
 compiler, execute BUILD_SDCL.COM with a first parameter of "GCC").
 
 **2022 Note:** If you have MMS or MMK_ you can build with them using
 DESCRIP.MMS instead.  DESCRIP.MMS assumes you are using the VAX port
-of GCC 2.7.1, but should be easy to adapt to VMS C To rebuild
+of GCC 2.7.1, but should be easy to adapt to VAX/VMS C To rebuild
 completely from scratch you need SSTG_, a Simple Scanner Table
 Generator, to generate CODES.H and LEXTAB.H from SDCL.TABLE, which is
 generated from SDCL.SCN.

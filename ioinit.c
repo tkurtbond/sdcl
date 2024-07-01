@@ -16,10 +16,13 @@
 #include <descrip.h>		/* DSC$K_DTYPE_T, DSC$K_CLASS_S */
 #include <ssdef.h>		/* SS$_INSFMEM */
 #include <rmsdef.h>		/* RMS$_FNF, RMS$_NMF, RMS$_SYN */
+#include <stdlib.h>
 
 extern char *strcpy(), *strchr(), *strrchr();
 extern void *malloc(), *realloc(), free();
 extern int strlen();
+
+static int u_reopen();
 
 typedef char bool;		/* Smallest addressable signed data type. */
 typedef unsigned char uchar;
@@ -251,7 +254,7 @@ u_reopen(nargs, args, argnum, acmod, chan)
 	file = args[argnum + 1];
     } else {
 	fprintf(stderr, "Illegal redirection on command line.\n");
-	exit(1);
+	exit(EXIT_FAILURE);
     }
     for (i = argnum; i < nargs - offset; ++i)
 	args[i] = args[i + offset];
@@ -264,7 +267,7 @@ u_reopen(nargs, args, argnum, acmod, chan)
 	    exit(errornum);
 	} else {
 	    perror("Failure opening redirected stream.");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
     } return (nargs - offset);
 }

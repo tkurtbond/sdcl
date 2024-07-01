@@ -1,3 +1,38 @@
+Mon Jul  1 15:09:20 2024  T. Kurt Bond  (TKB at MPLVAX)
+
+        * DESCRIP.MMS: Added zipto target for createding zip file
+        SDCLWRK.ZIP, for exporting current work in progress.  Use the
+        NOTE macro if specified as an additional part of the zipfile
+        in the zipit target.
+
+        * GETOPT.C: Improve portability, by switching from bcopy, index,
+        rindex, and alloca to memmove, strchr, strrchr, and malloc and
+        free.
+
+        * IOINIT.C: Improve portability by adding forward declaration and
+        using EXIT_FAILURE.
+
+        * README.RST: Use the correct terminology: it's called "VAX C".
+
+        * SDCL.C: Improve portability by switching from <strings.h> to
+        <string.h> and index and rindex to strchr and strrchr and
+        convert return statements in main() to exit() calls.
+
+        VAX C doesn't understand that string constants without
+        anything but whitespace between them should be a single string
+        constant, so make it one string constant using newline
+        backslash to indicate the string constant is continued on the
+        next line.
+
+        Add a "-h" option to display help and then exit, and usage()
+        to implement it.
+
+        * SDCL.MAN: Add the "-h" option and sort the options
+        alphabetically.
+
+        * TODO.ORG: Rename TODO.; to TODO.ORG and update.
+
+
 Sun Feb 20 13:50:12 2022  T. Kurt Bond  (TKB at MPLVAX)
 
         * README.RST: Renamed AAAREADME.1ST to README.RST, so GitHub will

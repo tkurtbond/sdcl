@@ -1,5 +1,3 @@
--*-outline-*-
-
 * Don't produce an output file if a fatal error occurs.
 
 * break and next should work with labels, ala Ada & VMS BASIC.
@@ -20,3 +18,14 @@ problem here.
 
 ** better wording of reporting on loop stack errors
 
+* Improve portablity.
+
+* add -h and usage().
+
+* Remove -d, since it is not used.
+
+* Sort the option descriptions in sdcl.man.
+
+* Use SYS$EXIT on VMS with condition codes defined by the VMS MESSAGE Utility.
+
+This would make it painful to also compile on Unix.
