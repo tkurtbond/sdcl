@@ -51,6 +51,8 @@ ICFLAGS=$(ICFLAGS)/VAR=$(VAR)
 !---
 CC=GCC
 
+all : sdcl.exe sdcl.mem sdcl.doc
+
 OBJS = getopt.obj, lex.obj, output.obj, parser.obj, sdcl.obj, stack.obj, version.obj, ioinit.obj
 
 sdcl.exe : $(OBJS)
@@ -66,8 +68,19 @@ lextab.h, codes.h : sdcl.table
 sdcl.table : sdcl.scn
         sstg sdcl.scn sdcl.table
 
+
+sdcl.doc : sdcl.rno
+        runoff/variant=nopaging/output=tmp.mem $(MMS$SOURCE)
+        @stripcrlf tmp.mem $(MMS$TARGET)
+        delete tmp.mem;0
+
+sdcl.mem : sdcl.rno
+        runoff/right=5/output=$(MMS$TARGET) $(MMS$SOURCE)
+
+.SUFFIXES : .doc .mem
+
 clean : 
-        - delete/log *.exe;*, *.obj;*
+        - delete/log *.exe;*, *.obj;*, *.mem;*, *.doc;*
 
 realclean : clean
         - delete/log sdcl.table;*, codes.h;*, lextab.h;*

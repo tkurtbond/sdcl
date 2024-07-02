@@ -27,3 +27,5 @@ extern void putstr(char *s);	/* output a string, with auto-continuation */
 extern void putsr_unbroken(char *s); /* output a string w/o continued */
 extern void putlabel(int n);	/* output a number followed by a colon */
 extern void puttarget(int n);	/* output label to be used as target in goto */
+
+extern void reinitlabels(void); /* Reinitialize label numbers. */

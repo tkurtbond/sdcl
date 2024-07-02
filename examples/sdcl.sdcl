@@ -15,7 +15,7 @@
 # 1.00    ??????  cpb  Initial version
 # 2.00    101288  tkb  Handle wild-cards and more than one file-spec, new SDCL
 ###############################################################################
-!> SDCL.SDCL  -- provide default name and extension for the SDCL preprocessor
+!> SDCL.SDCL -- provide default name and extension for the SDCL preprocessor
     verify_on = f$verify(0)
     ##Set up global constants
     TRUE  = (1 .eq. 1)

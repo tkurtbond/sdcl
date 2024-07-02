@@ -110,8 +110,15 @@ main(argc, argv)
 		continue;
 	    }
 	}
+
 	initlex();		/* initialize lexical analyzer */
+        /* Reinitialize label numbers if not outputing everything to a
+           single file. */
+        if (! out_flag)
+          reinitlabels();
+
 	program();		/* parse a SDCL program */
+
 	nfiles++;
 
 	/* reports some statistics for the current file */

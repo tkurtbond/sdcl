@@ -20,13 +20,20 @@ char token[MAXTOK + 1];		/* value of current token */
 /* forward declarations of functions */
 void statement();
 
+static int label = 23000;
+
+/* reinitlabels -- Reinitialize label numbers. */
+void
+reinitlabels(void)
+{
+  label = 23000;
+}
 
 
 /* genlab -- generate `n' labels */
 int 
 genlab(int n)
 {
-    static int label = 23000;
     int m;
 
     m = label;

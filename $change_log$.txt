@@ -1,3 +1,23 @@
+Tue Jul  2 13:58:06 2024  T. Kurt Bond  (TKB at MPLVAX)
+
+        * PARSER.C, SDCL.C, SDCL.H: Add the reinitlabels() function to
+        reinitialize the label counter, so that if we're not outputing to
+        a single file the label numbers SDCL generates for its translation
+        of control structures will will start over for each output file,
+        so diffing the .COM files produced will be easier.
+
+        * SDCL.MAN: Document that labels are reinitialized at the start of
+        each file, unless outputing everything to a single file.
+
+        * VERSION.C: Incrememt tertiary version number.
+
+        * STRIPCRLF.COM: Addeed for building SDCL.DOC.
+
+        * SDCL.RNO: Create from SDCL.MAN, and delete SDCL.MAN.
+
+        * DESCRIP.MMS: Add rules to build SDCL.MEM and SDCL.DOC from
+        SDCL.RNO.
+
 Mon Jul  1 15:09:20 2024  T. Kurt Bond  (TKB at MPLVAX)
 
         * DESCRIP.MMS: Added zipto target for createding zip file
