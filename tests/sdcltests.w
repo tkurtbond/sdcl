@@ -1,0 +1,147 @@
+#-h- descrip.mms      362  asc  15-aug-24 09:02:10  tkb ()
+! Some of these are intended to produce errors, so use MMK/IGNORE=ERROR.
+
+all :	COMPOUNDS.COM, DCLLINE_EXAMPLE.COM, MULTILINE-CONTROL.COM, -
+	PROBLEM_WITH_CONDITION.COM, TRYSLASHSLASH.COM, UNEXPECTED_ELSE.COM, -
+	UNTERMINATED_COMPOUNDS.COM, UNTERMINATED-REPEAT.COM
+
+clean :
+	- delete *.com.*/log
+
+
+SDCL=sdcl
+.SUFFIXES : .SDCL
+
+.SDCL.COM :
+	$(SDCL) $(MMS$SOURCE)
+#-h- compounds.sdcl    39  bin  15-aug-24 08:55:46  tkb ()
+thus
+{
+	this
+	{
+		that
+	}
+	the
+}
+other
+#-h- dclline_example.sdcl 82  bin  15-aug-24 08:55:46  tkb ()
+if (this)
+   //this is a dcl line     x
+else 
+   //this is also a dcl line	x
+exit
+#-h- multiline-control.sdcl 1058  asc  15-aug-24 08:55:46  tkb ()
+# The control structures are pretty flexible about being broken over 
+# multiple lines.
+
+wso :== write sys$output
+if (cond)
+    wso "then"
+else
+    wso "else"
+
+if (cond)
+{
+    wso "compound then"
+} 
+else 
+{
+    wso "compound else"
+}
+
+
+# Cuddled braces work fine.
+if (cond) {
+    wso "cuddled braces compound then"
+} else {
+    wso "cuddled braces compound else"
+}
+
+# This is illegal because the else keyword is not recognized as it is not
+# the first word of a DCL command.
+#if (cond) if (cond2) wso "inside cond2 true" else wso "inside cond2 false"
+# So is this
+#if (cond) { wso "1-line if compound true" } else { wso "1-line if compound false" }
+
+
+while (cond)
+    wso "while body"
+
+while (cond)
+{
+    wso "compound while body"
+}
+
+for (i = 1; i .lt 10; i = i + 1)
+    wso "for body"
+
+for (i = 1; i .lt 10; i = i + 1)
+{
+    wso "compound for body"
+}
+
+do 
+    wso "do body"
+while (cond)
+
+do wso "do body on same line as do"
+while (cond)
+
+# This is illegal.
+#do wso "do body on same line as do" while (cond)
+
+do
+{
+    wso "compound do body"
+} 
+while (cond)
+
+
+#-h- multilineinitreinit.sdcl 160  asc  15-aug-24 08:55:46  tkb ()
+for (i = 0
+     s = ""; 
+     i .lt. 10;
+     i = i + 1
+     s = s + ".")
+    write sys$output "i: ", i, " s: ", s
+write sys$output "at end: i: ", i, " s: ", s
+#-h- problem_with_condition.sdcl 304  bin  15-aug-24 08:55:46  tkb ()
+# Something like the following, a do-loop without a while, causes
+# everything after the first `}' ends up in the condition part of the
+# generated if.  Here is the example input:
+do {
+}
+here
+{
+  {
+  }
+  {
+# Here is the example output:
+# $ 23000: 
+# $ 23001: if (here{ { } {) then goto 23000
+# $ 23002: 
+#-h- tryslashslash.sdcl 105  bin  15-aug-24 08:55:46  tkb ()
+this //that is it
+//this is also it
+and this is other stuff.
+//this is a dcl line
+correct?//I don't know
+#-h- unexpected_else.sdcl 62  bin  15-aug-24 08:55:47  tkb ()
+if (x) {
+this that the other
+else {
+this that
+and the
+other
+}
+#-h- unterminated-repeat.sdcl 108  asc  15-aug-24 08:55:47  tkb ()
+repeat {
+    write sys$output "outer repeat body"
+    repeat {
+        write sys$output "inner repeat body"
+#-h- unterminated_compounds.sdcl 9  bin  15-aug-24 08:55:47  tkb ()
+{
+	{
+		{
+#-h- listsrcs.sh      113  asc  15-aug-24 09:08:39  tkb ()
+lr descrip.mms *.sdcl | tee ~usr/sdcltest.lis | sedit 's/%{?+}$/ar uv sdcltest.w $1/' | tee ~usr/initsdcltest.sh

@@ -1,3 +1,20 @@
+Mon Aug 12 09:13:32 2024  T. Kurt Bond  (TKB at MPLVAX)
+
+        * Put under revision control using SWTOOLS TCS using files sdcl.w
+        and sdcl.tcs
+
+        * SDCL_SETUP.COM: Add command procedure to set up SDCL DCL symbol
+        for foreign command execution.
+
+        * LISTSRCS.SH: Add SWTOOLS shell script to list sources and
+        produce commands to initialize sdcl.w.
+
+        * COUNT_SRCS.COM: Add commmand procedure to count sources.
+
+        * SDCL.RNO: Rename section Notes to Language Notes.  Convert that
+        section to use lists to make reference to each of the items
+        easier. 
+
 Tue Jul  2 13:58:06 2024  T. Kurt Bond  (TKB at MPLVAX)
 
         * PARSER.C, SDCL.C, SDCL.H: Add the reinitlabels() function to
@@ -70,7 +87,7 @@ Fri Feb 18 14:30:30 2022  T. Kurt Bond  (TKB at MPLVAX)
         * DESCRIP.MMS: Created in preparation for uploading to GitHub.
 
         * SDCL.TABLE, CODES.H, LEXTAB.H: Generated new versions for
-        comparison to ensure the completed version fo SSTG_TO_C.SCM worked
+        comparison to ensure the completed version of SSTG_TO_C.SCM worked
         correctly.
 
 Thu Feb 17 15:30:03 2022  T. Kurt Bond  (TKB at MPLVAX)

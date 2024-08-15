@@ -55,7 +55,7 @@ Input and Output Files
 If no output file is specified, each input file is processed
 and written out seperately to files in the current directory.
 These files have the same name as their corresponding input
-file, except that `.com' is substituted for whatever followed
+file, except that ".COM" is substituted for whatever followed
 the last period in the input file name.  Label renumbering
 starts over at at 23000 for every new output file.
 .P
@@ -71,7 +71,7 @@ output is written to the standard output, allowing SDCL to be
 used as a filter in a pipe.
 .P
 Unix-style i/o redirection using "<", ">", ">>", "2>", and
-"2>>".  is supported, as are VMS wildcards.
+"2>>"  is supported, as are VMS wildcards.
 .IFNOT NOPAGING
 .PAGE
 .ELSE NOPAGING
@@ -101,16 +101,18 @@ brackets (<>).
             | { <program> }
             | <label>: <statement>
             | <other>
+            | //<DCL inclusion>
 .EL
 .S
 .i -8
-Notes
-.P
+Language Notes
+.LS
+.LE
 Lines do not start with the dollar sign ($), unlike DCL.
-.P
+.LE
 Comments start with the pound sign (_#) and extend to the end
 of the line.
-.P
+.LE
 Labels consist of a letter or underscore followed by zero or
 more letters, dollar signs, digits, or underscores.
 Whitespace may seperate the label from the colon, but the
@@ -123,12 +125,12 @@ ds :== dir/size=all/width=(filename=40)
 .EL
 .LM -4
 .S
-the `ds :' is *NOT* a label, because the colon is part of the
-`:==' token.  SDCL handles this case correctly as one
+the "ds :" is *NOT* a label, because the colon is part of the
+":==" token.  SDCL handles this case correctly as one
 statement, not as a label followed by a statement beginning
-with `=='.
+with "==".
 .P
-Note that SDCL does not recognize the DCL label `100$:'
+Note that SDCL does not recognize the DCL label "100$:"
 because it starts with a digit, rather than a letter or
 underscore, so any SDCL constructs that appear on that line
 will not be recognized.  Such labels may still be used, but
@@ -137,11 +139,13 @@ they must not appear on the same line as an SDCL construct.
 The labels that SDCL uses internally consist of decimal
 numbers starting with 23000.  Avoid using such labels in your
 own programs.  When output is being written to multiple files
-the labels will start over at 23000 with each output file.
-.P
+the labels will start over at 23000 with each output file.  When
+output is being to one file the line numbers DO NOT start over
+for each input file!
+.LE
 Multiple statements can be enclosed between braces ({}) to
 make a compound statement.
-.P
+.LE
 SDCL keywords and braces are only recognized as the first
 word of a DCL command.  This means that, given
 .S
@@ -181,7 +185,7 @@ is not legal because the first "}" is not recognized.
 .P
 (Otherwise you couldn't use keywords or braces in DCL commands
 in SDCL, like write sys$output "{here!}")
-.P
+.LE
 Multiple line <initialize> and <reinitialize> clauses in a 
 for loop are legal, like this:
 .S
@@ -196,25 +200,25 @@ for (i = 0
 write sys$output "at end: i: ", i, " s: ", s
 .EL
 .LM -4
-.P
+.LE
 The break statement without an integer argument exits the
 immediately enclosing loop.  With an integer argument of n, it
 exits the n'th enclosing loop.  The integer argument MUST be
-on the same line as the `break'.  (Rationale: that way the
+on the same line as the "break".  (Rationale: that way
 SDCL doesn't go looking across lines and possibly finding the
 integer that begins a label on the next line.)
-.P
+.LE
 The next statement without an integer argument starts the
 next iteration of the immediately enclosing loop, starting at
 the test of the continuation condition for the loop, if any.
 With an integer argument of n, it starts the next iteration of
 the n'th enclosing loop.  The integer argument MUST be on the
-same line as the `next'. (Rationale: that way the SDCL doesn't
+same line as the "next". (Rationale: that way SDCL doesn't
 go looking across lines and possibly finding the integer that
 begins a label on the next line.)
-.P
+.LE
 The repeat loop without an until part repeats forever.
-.P
+.LE
 <other> statements are anything not otherwise recognized by
 SDCL.  If SDCL does not recognize the first token in a
 statement, that statement is assumed to be an <other>, and
@@ -223,7 +227,7 @@ end of the logical line, taking into account backslash line
 continuation).  The statement is emitted preceded by a dollar
 sign ($) and with appropriate continuation lines if it is more
 than 80 characters long.
-.P
+.LE
 Lines may be continued with the backslash character (\). A
 backslash followed by whitespace (blanks or tabs, possibly
 including a comment after the first whitespace character) and
@@ -237,9 +241,9 @@ Inside SDCL control structures (such as the <condition> part
 of a loop) the backslash continuation character need not be
 used because SDCL knows to continue over lines until the end
 of the structure.
-.P
-Statements starting with two slashes ('//') are called DCL
-statements and extend to the next newline. They are output
+.LE
+A statement starting with two slashes ('//') is called a DCL
+inclusion and extends to the next newline. It is output
 without a preceeding dollar sign ($) and without squashing
 spaces and tabs to one space.
 .P
@@ -254,22 +258,35 @@ backslash.  If a backslash followed by a non-whitespace
 character is encountered, the backslash is ignored and the
 following character is treated as a normal character despite
 any special meaning it may have elsewhere to SDCL.
+.ELS
 .S
 .I -8
 Limitations
 .S
-.P
-Lines are limited to 512 characters.  Tokens are limited to
-512 characters.  DCL statements ('//' lines) are limited to
-512 characters.  <reinitalize> sequences are limited to 512
-characters.  Except for the last, these limits aren't a
+.LS
+.LE
+Lines are limited to 512 characters.
+.LE
+Tokens are limited to
+512 characters.
+.LE
+DCL inclusions ('//' lines) are limited to
+512 characters.
+.LE
+<reinitalize> sequences are limited to 512
+characters.
+.ELS
+Except for the last, these limits aren't a
 serious problem, since DCL's line buffer is shorter than that.
-.P
+.LS
+.NUMBER LIST 5
+.LE
 Error reporting is primitive.
-.P
+.LE
 Only labels that start with letters or underscores and contain
 only letters, underscores, dollar signs, and digits are
 recognized.
+.ELS
 .s
 .i -8
 Authors
@@ -278,6 +295,6 @@ The original SDCL was written by Sohail Aslam, of the
 University of Colorado at Colorado Springs, and is available
 from the DECUS program library as VAX-143.
 .p
-This version was completely rewritten from scratch by Thomas
-Kurt Bond, with additions and changes to the SDCL syntax.
+This version was completely rewritten from scratch by
+T.  Kurt Bond, with additions and changes to the SDCL syntax.
 

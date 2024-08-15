@@ -2,8 +2,6 @@
 #
 # Program:        P I P E S . S D C L
 # Written By:     Thomas Kurt Bond
-# Version:        2.60a
-# Date:           19-Apr-1987
 # 
 # Description:
 # 
@@ -42,10 +40,12 @@
 # command  	-- PIPES [option] "command" will execute the command, unless
 #                  an alternate input file was specified, and then exit.
 # 
-# Options:
-# -verify[~]	-- Turn on [off] verify in pipes command procedure
-# -testing[~]	-- Turn on [off] the internal debugging commands and output
-# -input	-- file to read command lines from
+# Invocation Options:
+# -debug[~]       -- Turn on [off] the internal debugging commands and output.
+# -help           -- Display the help message.
+# -input=filename -- file to read command lines from
+# -testing[~]	  -- Also turn on [off] the internal debugging commands and output.
+# -verify[~]	  -- Turn on [off] verify in pipes command procedure
 # 
 # History:
 # Ver     When    Who  What
@@ -58,6 +58,7 @@
 # 2.50a   041687  tkb  Add >> and ?? (append output to a file).
 # 2.60a   041987  tkb  Add read from file, options, and control of set verify.
 # 3.0     041189  tkb  Convert to new SDCL syntax.
+# 3.1     083089  tkb  Add the TAKE command (takes input from file).
 ###############################################################################
    save_verify_env = 'f$verify(f$type(pipes_verify) .nes. "")'
    !> PIPES.SDCL -- UNIX style pipes and i/o redirection
@@ -80,7 +81,7 @@
    verify        = 0		#normally verify is off
 
    ##Valid Options List (in uppercase because DCL upcases command line)
-   opt_list      = "/INPUT/TESTING/VERIFY/"
+   opt_list      = "/DEBUG/HELP/INPUT/TESTING/VERIFY/"
    opt_list_len  = f$length(opt_list)
 
    ##process options till none left
@@ -115,25 +116,7 @@
 
    ##Main program.  Get a command line and execute it
    if (is_input_file) {			##read command from a file
-      file = f$search(input_file)	##make sure input file exists
-      if (file .eqs. "") {
-         wse "pipes: can't open input file `", input_file, "'"
-         goto The_End
-      }
-      open inf 'file'
-      error_resume = "non_interactive_resume" ##resume for non interactive
-      done = false
-      do {
-         read \
-            /end_of_file=end_file \
-            /prompt="PIPES> " \
-            inf \
-            inl
-         gosub process_line
-         non_interactive_resume:
-      } while (.not. done)
-      end_file:
-      close inf
+      gosub take_from_file
    } else {				#get commands interactively
       ##Identify program
       wso "PIPES -- Enter -h for help.                           ''f$time()'"
@@ -161,8 +144,9 @@ error_handler:
    goto 'error_resume'
    ##End of error_handler
 
-###Process a line of input.  Split the line up and do one command at
-###a time if several commands are connected by pipes ("|").
+### PROCESS_LINE -- Process a line of input.  Split the line up and do
+### one command at a time if several commands are connected by pipe
+### symbols ("|").
 process_line:
    line = f$edit(inl, "trim,uncomment")
    if ((f$extract(0, 1, line) .eqs. "#") .or. line .eqs. "") {	
@@ -195,6 +179,21 @@ process_line:
       return
    }
 
+   if (f$locate("take", f$edit(line, "trim,lowercase")) .eq. 0) {
+       ##get input from a file
+       input_file = f$edit(f$element(1, " ", \
+           f$edit(line, "trim,compress")), "collapse")
+       if (input_file .eqs. "") {
+           inq input_file "_File Name: "
+	   if (input_file .eqs. "") {
+	       wse "pipes: No file name specified"
+	       return
+	   }
+       } 
+       gosub take_from_file
+       return
+   }
+
    ##Chop the line up into joints of pipe and execute each joint in turn.
    ##i is the number of the temp file that holds input.
    ##iplus is the number of the temp file that holds output.
@@ -218,6 +217,10 @@ process_line:
          wse "Current line:  ", line
       }
 
+      # Unfortunately, it seems that i/o redirection does not work for 
+      # command procedures.  Probably because I'm using DEFINE/USER, so
+      # the logical name lasts for the execution of one program, instead of 
+      # DEFINE/SUPER??? 
       gosub stdin_redirect		#check for i/o redirection of stdin
       gosub stdout_redirect		#check for i/o redirection of stdout
       gosub stderr_redirect		#check for i/o redirection of stderr
@@ -235,8 +238,9 @@ process_line:
       if (more_pipes) 	#define a temp file to hold output for next command
          udef sys$output 'temp_spec''iplus'.'temp_type'
       else
-         if (is_out_file)		#User specified output file
+         if (is_out_file) {		#User specified output file
             udef sys$output 'out_file'
+         } 
       if (debug) {
          wse "sys$command: ", f$trnlnm("sys$command")
          wse "sys$error:   ", f$trnlnm("sys$error")
@@ -357,41 +361,90 @@ stderr_redirect:
 
 ###Help routine. Explain purpose and operation of this command procedure
 pipes_help_routine:
-   wse ""
-   wse "PIPES -- This command procedure adds UNIX style piping and i/o"
-   wse "         redirection to DCL.  Written in SDCL."
-   wse ""
-   wse "Command Line Operators:"
-   wse "| -- Pipe symbol. Used to direct the output from one command to"
-   wse "     the next command."
-   wse "> -- Output redirection symbol.  Used to direct the output from"
-   wse "     one command to a file.  Legal only on the end of a pipeline."
-   wse "< -- Input redirection symbols.  Used to direct the command to take"
-   wse "     input from a file. Legal only on the beginning of a pipeline."
-   wse "? -- Error redirection symbols.  Used to direct the error output"
-   wse "     from a command to a file."
-   wse "& -- Spawn a pipeline."
-   wse ">> -- Append output to a file."
-   wse "?? -- Append error output to a file."
-   wse "Example: "
-   wse "PIPES> translit a-z @n <a.in | wordcount >words.out"
-   wse "     takes the input for the translit command from the file a.in"
-   wse "     and takes translit's output for the input for wordcount, and"
-   wse "     stores wordcount's output in words.out."
-   wse "Commands: "
-   wse "EXIT  -- Exit from PIPES."
-   wse "%     -- Read a literal line.  Used when quotes "" or spaces or case"
-   wse "         of letters in command line is significant."
-   wse "-h    -- This message."
-   wse "Other -- Any valid DCL command with ALL required parameters and"
-   wse "         qualfiers specified."
-   wse ""
-   return				#end of pipes_help_routine
+   copy sys$input sys$error
+// PIPES -- This command procedure adds UNIX style piping and i/o
+//          redirection to DCL.  Written in SDCL.
+// 
+// Invocation command line options:
+// -DEBUG - Turns on debugging output.
+// -HELP - Displays this message and exits.
+// -INPUT=filename - Specifies file to  read commands from.
+// -TESTING - Also turns on debugging output.
+// -VERIFY - Turns on verification.
+// 
+// Pipes command line operators:
+// | -- Pipe symbol. Used to direct the output from one command to
+//      the next command.
+// > -- Output redirection symbol.  Used to direct the output from
+//      one command to a file.  Legal only on the end of a pipeline.
+// < -- Input redirection symbols.  Used to direct the command to take
+//      input from a file. Legal only on the beginning of a pipeline.
+// ? -- Error redirection symbols.  Used to direct the error output
+//      from a command to a file.
+// & -- Spawn a pipeline.
+// >> -- Append output to a file.
+// ?? -- Append error output to a file.
+// 
+// Note: i/o redirection doesn't work properly with DCL command procedures,
+// just actual executable programs.
+//
+// Example: 
+// PIPES> translit a-z @n <a.in | wordcount >words.out
+//      takes the input for the translit command from the file a.in
+//      and takes translit's output for the input for wordcount, and
+//      stores wordcount's output in words.out.
+// Commands: 
+// EXIT  -- Exit from PIPES.
+// TAKE  -- Take input from file.  Specify a file name after the command.
+// %     -- Read a literal line.  Used when quotes ("") or spaces or case
+//          of letters in command line is significant.
+// -h    -- This message.
+// Other -- Any valid DCL command with ALL required parameters and
+//          qualfiers specified.
+// 
+    return				#end of pipes_help_routine
+
+#### TAKE_FROM_FILE
+take_from_file:
+    file = f$search(input_file)		#make sure input file exists
+    if (file .eqs. "") {
+       wse "pipes: can't open input file `", input_file, "'"
+       return
+    }
+    open inf 'file'
+    error_resume = "non_interactive_resume" #resume for non interactive
+    done = false
+    do {
+       read \
+	  /end_of_file=end_file \
+	  /prompt="PIPES> " \
+	  inf \
+	  inl
+       gosub process_line
+       non_interactive_resume:
+    } while (.not. done)
+    end_file:
+    close inf
+    error_resume = "interactive_resume"	#resume for interactive
+    return
 
 
 ###############################################################################
 ####Option Subroutines
 ###############################################################################
+
+###DEBUG and TESTING options -- turn on internal debugging messages
+OPT$deb:
+OPT$tes:
+   if (f$locate("~", opt) .ne. f$length(opt))
+      debug = false
+   else
+      debug = true
+   return
+
+OPT$hel:
+   gosub pipes_help_routine
+   exit (1 .or. (f$verify(save_verify_env) .and. 0))
 
 ###INPUT option -- read input from a file
 OPT$inp:
@@ -401,14 +454,6 @@ OPT$inp:
       input_file = f$extract(p + 1, l, opt)
       is_input_file = true
    }
-   return
-
-###TESTING option -- turn on internal debugging messages
-OPT$tes:
-   if (f$locate("~", opt) .ne. f$length(opt))
-      debug = false
-   else
-      debug = true
    return
 
 ###VERIFY option -- Set VERIFY

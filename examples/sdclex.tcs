@@ -1,0 +1,1007 @@
+%%s 14/0/966
+%%d D 1.3 12-Aug-24 10:35:14 tkb 3 2
+%%c Add descrip.mms.
+%%s 4/2/962
+%%d D 1.2 12-Aug-24 10:31:29 tkb 2 1
+%%c Changed from using EXE_LIB in SDCL.SDCL to SDCL_DIR, which gets set by
+%%c SDCL_SETUP.COM.
+%%s 0/0/0
+%%d D 1.1 12-Aug-24 09:44:53 tkb 1 0
+%%c Initial commit.
+%%T
+%%I 1
+#-h- dirsize.sdcl    7808  bin  12-aug-24 09:43:58  tkb ()
+###############################################################################
+###                      
+### Program:        D I R S I Z E . S D C L
+### Written By:     Thomas Kurt Bond
+###
+### Description:	
+### 
+### DIRSIZE reports the size of files in a directory and all lower directories.
+### Its only advantage over ``DIR/SIZE=ALL/TOTAL [DIR...]'' is the fact that
+### it lists both the total size of files in a directory and the total size
+### of all files in all subdirectories of that directory.  This allows you
+### to easily see what *directory trees* hold the most files, while 
+### DIR/SIZE/TOTAL only allows you to see what *directories* hold
+### the most files.
+###
+### DIRSIZE's main disadvantage is its incredible slowness, due to its
+### implementation as a command procedure.  Some speed gains probably
+### could be realized by converting it to Plain DCL (which would cut down
+### on the number of GOTO's).  However, that would make it even harder to
+### read than it is now.  To get serious performance improvements, it would
+### be necessary to recode it in a compiled language.
+###
+### DIRSIZE is modeled on DELTREE.COM, which was written by C. Paul
+### Bond.  It uses recursion, but instead of using a recursively
+### CALL'ed SUBROUTINE it uses several explicit stacks to hold the
+### context information.
+### 
+### History:
+### Ver     When    Who  What
+### 1.00    071588  tkb  Initial Version.
+### 1.01    081188  tkb  Use f$fao to line output up in columns.
+### 2.0     052289  tkb  Change to new SDCL syntax, add verify handling.
+###############################################################################
+    verifying = 'f$verify(f$type(dirsize_verify) .nes. "")'
+    !> DIRSIZE.SDCL -- Show total size of directory and all subdirectories.
+    true = (1 .eq. 1)
+    false = .not. true
+    debug = true
+
+    ##Valid Options List (in uppercase because dcl upcases command line)
+    opt_list = "/OUTPUT/SORT/"
+    opt_list_len = f$length(opt_list)
+
+    ##set up default options 
+    do_output = false
+    do_sort = false
+
+    ##Options always start at p1 
+    i = 1
+    ##Process options till none left 
+    while (f$extract(0, 1, p'i') .eqs. "-") {
+	opt = p'i'
+	which = f$extract(1, 3, opt)
+	ok = (f$locate("/" + which, opt_list) .ne. opt_list_len) .and. \
+	     (which .nes. "")
+	if (ok) 
+	    gosub OPT$'which'
+	else
+	    write sys$output "Invalid Option: ''opt'"
+	i = i + 1
+    }
+
+    ##deal with results of options 
+    if (do_sort .and. .not. do_output) {
+        write sys$output "dirsize: cannot sort if output file not specified"
+	goto The_End
+    }
+    if (.not. do_output)
+        output = "sys$output"
+    else {
+        if (f$parse(output_file) .eqs. "") {
+	    write sys$output "dirsize: invalid filename specified: ", \
+		  output_file
+	    goto The_End
+	}
+	
+	output = "outputfile"
+        if (do_sort) {
+	    outfile = f$parse(output_file, , , "device") \
+	           + f$parse(output_file, , , "directory") \
+		   + f$parse(output_file, , , "name") \
+		   + "." + f$getjpi("", "pid") + "_dirsize"
+	    open 'output' 'outfile'/write/error=Cannot_Open_File
+	} else {
+	    open 'output' 'output_file'/write/error=Cannot_Open_File
+	}
+    }
+
+    StartDir = p'i'			
+    if (StartDir .eqs. "")		#Get the directory to start in 
+        inquire StartDir "_Starting Directory"
+    if (StartDir .eqs. "")		#since nothing to do 
+        exit (1 .or. (f$verify(verifying) .and. 0))
+
+    DevSpec = f$parse(StartDir,,,"device")
+    DirSpec = f$parse(StartDir,,,"directory") - "[" - "]"
+                                                         
+    ##Make sure the information for the first directory level 
+    ##is pushed onto the stack 
+    
+    Top = 1				#No. of Levels in Stack,
+					# top of stack pointer 
+    DirSpec_'Top' = DirSpec		#First directory level 
+    TotalSize_'Top' = 0			#Total size for first directory level 
+    
+    ##Traverse the directories, starting at the top and working to the 
+    ##bottom, then report the directories from the bottom up, since
+    ##we need to know the size of all subdirectories to report on the 
+    ##directory we are intersted in.
+    
+    repeat {				#Exit by break 
+       FileSpec = f$search(DevSpec + "[" + DirSpec + "]*.dir;1", Top)
+       FileSpec = f$parse(FileSpec,,,"name")
+       if (FileSpec .eqs. "000000")	#Skip Master Directory     
+           next				
+       if (FileSpec .nes. "") {		#push directory on stack   
+          Top = Top + 1			#increment stack pointer   
+	  DirSpec_'Top' = DirSpec	#put old spec on stack     
+	  DirSpec = DirSpec + "." \
+	      + FileSpec		#step down into new subdir 
+          if (f$type(TotalSize_'Top') .eqs. "") {
+             ##Initialize total size for this directory level, 
+             ##since this is the first directory on this level. 
+             TotalSize_'Top' = 0
+          }
+	  next				#start the search in this new subdir 
+       }
+
+       if (Top .eq. 1) break		#Only the last directory is on stack 
+
+       ##No more directories found at this level, so total files at
+       ##this level and then pop this directory from the stack
+       
+       if (Top .ge. 0) {		
+           gosub DoCurrentLevel		#Total & print info for this level 
+	   DirSpec = DirSpec_'Top'      #pop directory from stack 
+	   Top = Top - 1                
+      	   next				#search for more dirs in new dir 
+       }
+
+       ##Something Went Very Wrong if we get here...
+       write sys$output "dirsize: Stack Underflow!"
+       goto Close_Files
+   }					#while 
+
+   gosub DoCurrentLevel			#Total & print info for top level 
+
+Close_Files:
+    if (do_output) {
+        close 'output'
+        if (do_sort) {
+            sort 'outfile' 'output_file'/spec=sys$input
+///collating=(seq=ascii,mod=("["=" ", "."=" ", "]"=" "))
+            delete 'outfile'.0
+	}
+    }
+
+The_End:
+   exit	(1 .or. (f$verify(verifying) .and. 0))	#At last 
+   
+Cannot_Open_File:
+   write sys$output "dirsize: cannot open output file"
+   exit (1 .or. (f$verify(verifying) .and. 0))
+
+### DoCurrentLevel -- Sum and print file sizes for this directory level.
+###     Print total sizes of subdirectories, if any.
+DoCurrentLevel:
+    Spec = DevSpec + "[" + DirSpec + "]"
+    DirSize_'Top' = 0			#holds accumulated size of files in dir
+    FileName = f$search(Spec + "*.*;*")
+    while (FileName .nes. "") {
+        DirSize_'Top' = DirSize_'Top' + f$file(FileName, "ALQ") 
+	FileName = f$search(Spec + "*.*;*")
+    }                    
+    TopPlus1 = Top + 1			#Pointer to previous level 
+    if (f$type(TotalSize_'TopPlus1') .eqs. "") {
+       ##A lower level directory did not exist, so no total from it 
+       write 'output' f$fao( \
+           " !44<[!AS]!> Size: !8SL", DirSpec, DirSize_'Top' )
+       TotalSize_'Top' = TotalSize_'Top' + DirSize_'Top'
+    } else {
+       ##A lower level direcotory did exist, so must use total from it 
+       write 'output' f$fao( \
+           " !44<[!AS]!> Size: !8SL Sub: !8SL", \
+	   DirSpec, DirSize_'Top', TotalSize_'TopPlus1' )
+       TotalSize_'Top' = TotalSize_'Top' + DirSize_'Top' + \
+           TotalSize_'TopPlus1'
+       delete/symbol TotalSize_'TopPlus1' #since leaving it around causes 
+                                          #mistakes in totaling 
+    }
+    return				#end DoCurrentLevel 
+
+
+###############################################################################
+###Command Line option procedures
+###############################################################################
+
+
+###output option -- name of output file 
+OPT$out:
+    do_output = true
+    p = f$locate("=", opt)
+    l = f$length(opt)
+    if (p .ne. l)
+        output_file = f$extract(p+1, l, opt)
+    else
+        output_file = ""
+    return ! from OPT$out, the output option
+
+###sort option -- sort the output file  
+OPT$sor:
+    do_sort = true
+    return ! from OPT$sor, the sort option
+#-h- hours.sdcl      5565  bin  12-aug-24 09:43:58  tkb ()
+!> HOURS.SDCL -- Create time use record of hours worked for current date (v1.5)
+###############################################################################
+#
+# Program:        H O U R S . S D C L
+# Written By:     Thomas Kurt Bond
+# Version:        1.4
+# Date:           7 December 1988
+#
+# Description:
+#
+# This command procedure allows you to easily enter your hours so you can
+# have a complete record of what you did each day.
+#
+# All times may be entered in normal hours or in military hours.  Do not 
+# include "am" or "pm" in the time.  If you enter an equals sign (=) at the
+# "Start Time:" prompt, the last end time will be used as the start time.
+# If you enter an equals sign (=) at the "Description:" prompt, the last
+# description will be used as the description. When you are done entering 
+# hours just # type return to the "Start Time:" prompt.
+#
+# History
+# Version When    Who  Why
+# 1.0     120588  TKB  Initial Version 
+# 1.1     120788  TKB  Fix so 12:30 - 3:20 => 2:50
+# 1.2     121688  TKB  Add logical name for directory to store files in
+# 1.3	  121988  TKB  Fix so proper month appears in header
+# 1.4     011888  TKB  Fix so start time and description default to last
+#                      end time and description if "=" is only thing entered
+#                      for them.
+# 1.5	  011988  TKB  Fix so uses `sys$disk:[]' for default if TIME_LIB
+#		       not defined.
+###############################################################################
+    ##Set up some useful abreviations and constants
+    TRUE = (1 .eq. 1)
+    FALSE = .not. TRUE
+    wso = "write sys$output"
+    get = "read/end=End_File/error=End_file sys$command"
+    months = "January/February/March/April/May/June/July" \
+	   + "/August/September/October/November/December"
+
+    ##constants controlling the output of the lines
+    default_width = 79			#width of text in message
+    heading = "Time Use Record"		#heading of the message
+    ##the format control string for the FAO that outputs a line
+    format_string = "!8AS  !17<!AS to !AS!>  !43AS  !5AS"
+    
+    ##Find out what directory to put the output file in.
+    time_lib = f$trnlnm("TIME_LIB")
+    if (time_lib .eqs. "") {
+        root = "sys$disk:[]" 		#use current device and directory
+    } else {
+        root = time_lib			#use user defined library
+    }
+
+    ##get the current time, possible from the user
+    time = f$time()
+    get newtime /prompt="Time <''time'>? " #allow the user to specify the time
+    if (newtime .nes. "") time = newtime
+    ## nice date for header
+    nice_date = f$cvtime(time,, "weekday") + ", " \
+	      + f$cvtime(time, "absolute", "day") + " " \
+	      + f$element(f$integer(f$cvtime(time,, "month"))-1, "/", months) \
+	      + " " + f$cvtime(time,, "year")
+    ##sort time for filename
+    sort_time = f$cvtime(time, "comparison", "date") - "-" - "-"
+    ##date for each time line
+    date = f$cvtime(time,,"month") + "/" \
+	 + f$cvtime(time,,"day") + "/" \
+	 + f$extract(2, 2, f$cvtime(time,,"year"))
+
+    ##file processing
+    file_name = root + sort_time + ".time"
+    if (f$search(file_name) .nes. "") {	#append to daily file if it exists
+        open /append outf 'file_name'
+    } else {				#otherwise, create it 
+        open /write outf 'file_name'
+	##Create the header
+	write outf ""
+	i = (default_width - f$length(nice_date)) / 2
+	write outf f$fao("!''i'* !AS", nice_date)
+	i = (default_width - f$length(heading)) / 2
+	write outf f$fao("!''i'* !AS", heading)
+	write outf f$fao("!''default_width'*=")
+    }
+
+    ##loop until no more information to get from user
+    last_end_time    = ""	#init saved data to null
+    last_description = ""
+    for (get start_time /prompt="Start Time:  ";
+	 start_time .nes. "";
+	 get start_time /prompt="Start Time:  ")
+    {
+	start_time = f$edit(start_time, "compress")
+        if (start_time .eqs. "=") {
+	    start_time = last_end_time
+	    wso "        Start Time is: ", start_time
+	}
+
+	##get times and descriptions from user
+	get end_time    /prompt="End Time:    "
+	end_time = f$edit(end_time, "compress")
+	last_end_time = end_time
+
+	get description /prompt="Description: "
+	if (f$edit(description, "compress") .eqs. "=") {
+	    description = last_description
+	    wso "     Description is: ", description
+	} else {
+	    last_description = description
+	}
+
+	##figure out duration
+	st_len = f$length(start_time)
+	et_len = f$length(end_time)
+	i = f$locate(".", start_time)
+	if (i .ne. st_len) start_time[i*8, 8] = 58 #ascii value of ":"
+	j = f$locate(".", end_time)
+	if (j .ne. et_len) end_time[j*8, 8] = 58 #ascii value of ":"
+	i = f$locate(":", start_time)
+	j = f$locate(":", end_time)
+
+	st_hours = f$integer(f$extract(0, i, start_time))
+	st_minutes = f$integer(f$extract(i+1, st_len, start_time))
+	et_hours = f$integer(f$extract(0, j, end_time))
+        if (et_hours .lt. st_hours) 
+            et_hours = et_hours + 12    #fix so 3:30 - 12:30 => 4:00
+	et_minutes = f$integer(f$extract(j+1, et_len, end_time))
+	temp_dur = ((et_hours * 60) + et_minutes) \
+		 - ((st_hours * 60) + st_minutes)
+        duration = f$fao("!2ZL:!2ZL", temp_dur / 60, \
+	    temp_dur - ((temp_dur / 60) * 60))
+
+	##format and write line
+	#write sys$output f$fao("St_hours: !SL!/St_Minutes: !SL!/Et_hours: !SL!/Et_minutes: !SL!/Duration: !AS", st_hours, st_minutes, et_hours, et_minutes, duration)
+	write outf f$fao(format_string, date, start_time, \
+	    end_time, description, duration)
+    }
+
+    close outf
+    
+The_End:
+    exit
+
+End_File:
+    write sys$error "report: end of file or error on input, exiting..."
+    close outf
+    exit
+#-h- pipes.sdcl     16670  bin  12-aug-24 09:43:58  tkb ()
+###############################################################################
+#
+# Program:        P I P E S . S D C L
+# Written By:     Thomas Kurt Bond
+# 
+# Description:
+# 
+# This command procedure implements i/o redirection with UNIX style
+# pipes ("|") and input and output file specifiers ("<" and ">"
+# respectively).  > is only allowed on the end of a pipeline, and <
+# is only  allowed on the beginning of a pipeline. A & at the end
+# of the line will cause the pipeline to be spawned.
+# 
+# You have to specify all values needed by the command, i.e., you
+# cannot say "edit" and have the editor ask "_File:" as it does at
+# the command line. Another problem: the INQUIRE command reads from
+# terminal and does the DCL command line processing on a line,
+# which results in changes to uppercase, quotes being removed, etc.
+# I've added an escape command, the percent sign %, to allow the next
+# line to be read literally without the DCL mangling. After hitting
+# %<CR> the prompt will be doubled ("PIPES>>") and this will be
+# read exactly as you type it.  Unfortunately, this command will
+# not be put in the recall stream, so you can't recall it with the
+# up arrow or RECALL.
+# 
+# If verify is on when PIPES is invoked, PIPES turns it off while in
+# PIPES, but turns it on before executing the current command (joint
+# of pipe).  If verify was off, but -verify was specified, verify is
+# turned on while in PIPES, but turned off before executing the
+# current command.  If verify was on, and -verify was specified, verify
+# is on throughout the execution of PIPES and all commands it executes.
+# 
+# With the -INPUT option a file to take the commands from can be specified.
+# The file should contain commands on each line, with no leading dollar
+# signs, etc. Lines with ! or # at the beginning are comments.  Comments
+# can also be indicated by a ! after last command on the line.  Blank
+# lines are ignored.
+# 
+# Parameters:
+# command  	-- PIPES [option] "command" will execute the command, unless
+#                  an alternate input file was specified, and then exit.
+# 
+# Invocation Options:
+# -debug[~]       -- Turn on [off] the internal debugging commands and output.
+# -help           -- Display the help message.
+# -input=filename -- file to read command lines from
+# -testing[~]	  -- Also turn on [off] the internal debugging commands and output.
+# -verify[~]	  -- Turn on [off] verify in pipes command procedure
+# 
+# History:
+# Ver     When    Who  What
+# 1.00a   121486  tkb  Initial version
+# 1.00b   121686  tkb  Add a # so can get line without DCL mangling it.
+#                      Help for pipes (?) added.
+# 1.00c   012187  tkb  Add & to allow a pipeline to be spawned.
+# 2.00a   040887  tkb  redo < and >, add ? (redirection of stderr), change
+#                      help to -h and escaped line indicator to %
+# 2.50a   041687  tkb  Add >> and ?? (append output to a file).
+# 2.60a   041987  tkb  Add read from file, options, and control of set verify.
+# 3.0     041189  tkb  Convert to new SDCL syntax.
+# 3.1     083089  tkb  Add the TAKE command (takes input from file).
+###############################################################################
+   save_verify_env = 'f$verify(f$type(pipes_verify) .nes. "")'
+   !> PIPES.SDCL -- UNIX style pipes and i/o redirection
+   ##command definitions
+   wse           = "write sys$error"
+   wso           = "write sys$output"
+   inq           = "inquire/nopun"
+   udef          = "define/user/nolog"
+
+   ##global constants
+   true          = 1 .eq. 1
+   false         = .not. true
+   debug         = false
+
+   temp_spec     = "sys$scratch:pipes_"
+   temp_type     = "tmp"
+
+   is_input_file = false
+   error_resume  = "interactive_resume"
+   verify        = 0		#normally verify is off
+
+   ##Valid Options List (in uppercase because DCL upcases command line)
+   opt_list      = "/DEBUG/HELP/INPUT/TESTING/VERIFY/"
+   opt_list_len  = f$length(opt_list)
+
+   ##process options till none left
+   i = 1
+   while (f$extract(0, 1, p'i') .eqs. "-") {
+      opt = p'i'
+      which = f$extract(1, 3, opt)
+      ok = (f$locate("/" + which, opt_list) .ne. opt_list_len) .and. \
+           (which .nes. "")
+      if (ok)
+         gosub OPT$'which'
+      else
+         wse "pipes: invalid option `", opt, "'"
+      i = i + 1
+   }
+
+   #Command passed as parameter, execute it and exit
+   if (p'i' .nes. "") {
+      inl = p'i'
+      gosub process_line
+      goto The_End
+   }
+
+   ##Set up the error handler. Note that the entry from a command line
+   ##(above) exits on an error, and does not resume, since it skips
+   ##this section.
+   ##Should we also exit on error when reading commands from a file?
+   ##(we don't now. Could move error trap setup into interactive section)
+
+   on error then goto error_handler
+   on control_y then goto error_handler
+
+   ##Main program.  Get a command line and execute it
+   if (is_input_file) {			##read command from a file
+      gosub take_from_file
+   } else {				#get commands interactively
+      ##Identify program
+      wso "PIPES -- Enter -h for help.                           ''f$time()'"
+      done = false
+      do {
+         inq inl "PIPES> "
+         gosub process_line
+         interactive_resume: 		#Come here after an error
+      } while (.not. done)
+   }
+
+The_End:
+   exit (1 .or. (f$verify(save_verify_env) .and. 0))
+
+
+###############################################################################
+####Subroutines
+###############################################################################
+
+
+###On error or control/y reset error traps and then get another command.
+error_handler:
+   on control_y then goto error_handler
+   on error then goto error_handler
+   goto 'error_resume'
+   ##End of error_handler
+
+### PROCESS_LINE -- Process a line of input.  Split the line up and do
+### one command at a time if several commands are connected by pipe
+### symbols ("|").
+process_line:
+   line = f$edit(inl, "trim,uncomment")
+   if ((f$extract(0, 1, line) .eqs. "#") .or. line .eqs. "") {	
+      ##comment or blank line, ignore
+      return
+   }
+
+   if (f$edit(line, "upcase") .eqs. "EXIT") {
+      done = true
+      return
+   }
+
+   if (line .eqs. "-H") {	#Print help for pipes
+      gosub pipes_help_routine
+      return
+   }
+
+   if (line .eqs. "%") {	#Get a line without DCL mangling it
+      ##INQUIRE command upcases, strips whitespace, and removes quotes, just
+      ##like DCL. READ doesn't, but line doesn't appear in RECALL list.
+      read/prompt="PIPES>> " sys$command line
+   }
+
+   if (f$locate("&", line) .eq. f$length(line) - 1) { ##Spawn a pipeline
+      ##strip off the ampersand and spawn a new execution of PIPES to
+      ##execute the line while we continue go on to something else.
+      ##( PIPES should be set up as PIPES :== @dir:pipes )
+      line = f$extract(0, f$length(line) -1, line)
+      spawn /nowait /notify pipes "''line'"
+      return
+   }
+
+   if (f$locate("take", f$edit(line, "trim,lowercase")) .eq. 0) {
+       ##get input from a file
+       input_file = f$edit(f$element(1, " ", \
+           f$edit(line, "trim,compress")), "collapse")
+       if (input_file .eqs. "") {
+           inq input_file "_File Name: "
+	   if (input_file .eqs. "") {
+	       wse "pipes: No file name specified"
+	       return
+	   }
+       } 
+       gosub take_from_file
+       return
+   }
+
+   ##Chop the line up into joints of pipe and execute each joint in turn.
+   ##i is the number of the temp file that holds input.
+   ##iplus is the number of the temp file that holds output.
+   ##That way, the next time around the loop the old output becomes the
+   ##new input, so piping is almost automatic.
+   i = 0				#initial number of pipes
+   do {
+      iplus = i + 1			#Get number to make temp output file
+      line_len = f$length(line)
+      bar_pos = f$locate("|", line)
+      pipe = f$extract(0, bar_pos, line) #Get first command before pipe
+
+      if (bar_pos .ne. line_len) {	#There are more pipes
+         ##Remove the current command and pipe from the command line
+         line = f$extract(bar_pos + 1, line_len, line)
+         more_pipes = true
+      } else
+         more_pipes = false		#current joint is the last one
+      if (debug) {
+         wse "Current joint: ", pipe
+         wse "Current line:  ", line
+      }
+
+      # Unfortunately, it seems that i/o redirection does not work for 
+      # command procedures.  Probably because I'm using DEFINE/USER, so
+      # the logical name lasts for the execution of one program, instead of 
+      # DEFINE/SUPER??? 
+      gosub stdin_redirect		#check for i/o redirection of stdin
+      gosub stdout_redirect		#check for i/o redirection of stdout
+      gosub stderr_redirect		#check for i/o redirection of stderr
+
+      if (is_err_file)			#user specified error output file
+         udef sys$error 'err_file'
+      if (is_in_file)			#user specified input file
+         udef sys$input 'in_file'
+      else
+         if (i .ge. 1)  #in a pipeline, connect the input to the pipe file
+            udef sys$input 'temp_spec''i'.'temp_type'
+         else 		#not in a pipeline, connect input to terminal
+            udef sys$input sys$command
+
+      if (more_pipes) 	#define a temp file to hold output for next command
+         udef sys$output 'temp_spec''iplus'.'temp_type'
+      else
+         if (is_out_file) {		#User specified output file
+            udef sys$output 'out_file'
+         } 
+      if (debug) {
+         wse "sys$command: ", f$trnlnm("sys$command")
+         wse "sys$error:   ", f$trnlnm("sys$error")
+         wse "sys$input:   ", f$trnlnm("sys$input")
+         wse "sys$output:  ", f$trnlnm("sys$output")
+      }
+
+      junk = f$verify(save_verify_env)
+      'pipe'				#Execute the current joint of pipe
+      junk = 'f$verify(f$type(pipes_verify) .nes. "")'
+
+      if (out_append) {			#handle >>
+         append /new_version 'out_file' 'append_file'
+         delete 'out_file';*
+      }
+      if (err_append) {			#handle ??
+         append /new_version 'err_file' 'err_append_file'
+         delete 'err_file';*
+      }
+
+      if (i .ge. 1) 	#In a pipeline, so delete the old pipe file
+         delete 'temp_spec''i'.'temp_type';* #input for command just done
+      i = i + 1		#Increment temp file counter for pipes
+
+   } while (more_pipes)
+   return				#end of process_line
+
+
+###i/o input redirection ("<")
+###Process the current command for an input file specification.
+stdin_redirect:
+   len = f$length(pipe)
+   pos = f$locate("<", pipe)
+   if (pos .ne. len) {
+      if (i .ge. 1) {	#only allow input file on beginning of a pipe
+         is_in_file = false
+         wse "Error: misplaced <"
+         goto error_handler
+      } else {		#Extract the input flag and file-spec
+         is_in_file = true
+         in_file = f$extract(pos + 1, len, pipe)
+         pipe	 = f$extract(0, pos - 1, pipe)
+         pos 	 = f$locate(" ", in_file)
+         len	 = f$length(in_file)
+         pipe	 = pipe + f$extract(pos, len, in_file)
+         in_file = f$extract(0, pos, in_file)
+      }
+   } else
+      is_in_file = false
+   return				#Exit from processing inputfile <
+
+
+###i/o output redirection (">")
+###Process the current command for an output file specification.
+stdout_redirect:
+   len = f$length(pipe)
+   pos = f$locate(">>", pipe)		#look for a >> first
+   if (pos .ne. len) {
+      out_append = true
+      skip = 2				#a >> is 2 spaces wide
+   } else {
+      pos = f$locate(">", pipe)		#look for a > if >> not found
+      out_append = false
+      skip = 1				#a > is only 1 space wide
+   }
+   if (pos .ne. len) {
+      if (more_pipes) {	#only allow output file on the end of a pipe
+         is_out_file = false
+         wse "Error: misplaced > or >>"
+         goto error_handler
+      } else {		#Extract the output flag and file-spec
+         is_out_file = true
+         out_file = f$extract(pos + skip, len, pipe)
+         pipe	  = f$extract(0, pos - 1, pipe)
+         pos 	  = f$locate(" ", out_file)
+         len	  = f$length(out_file)
+         pipe	  = pipe + f$extract(pos, len, out_file)
+         out_file = f$extract(0, pos, out_file)
+      }
+   } else
+      is_out_file = false
+   if (out_append) {
+      append_file = out_file		#file to append output to
+      out_file = temp_spec + "app." + temp_type  #write to temp file
+   }
+   return				#Exit from processing outfile >
+
+
+###i/o stderr redirection ("?")
+###Process the current command for an stderr file specification.
+stderr_redirect:
+   len = f$length(pipe)
+   pos = f$locate("??", pipe)
+   if (pos .ne. len) {			#look for a ?? first
+      err_append = true
+      skip = 2				#?? is 2 wide
+   } else {				#look for ? if ?? not found
+      pos = f$locate("?", pipe)
+      err_append = false
+      skip = 1				#? is one wide
+   }
+   if (pos .ne. len) {			#?? or ? found
+      is_err_file = true
+      err_file = f$extract(pos + skip, len, pipe)
+      pipe     = f$extract(0, pos - 1, pipe)
+      pos      = f$locate(" ", err_file)
+      len      = f$length(err_file)
+      pipe     = pipe + f$extract(pos, len, err_file)
+      err_file = f$extract(0, pos, err_file)
+   } else
+      is_err_file = false
+   if (err_append) {
+      err_append_file = err_file	#file to append to
+      err_file = temp_spec + "err." + temp_type	#temp file to write to
+   }
+   return				#Exit from processing errfile ? 
+
+
+###Help routine. Explain purpose and operation of this command procedure
+pipes_help_routine:
+   copy sys$input sys$error
+// PIPES -- This command procedure adds UNIX style piping and i/o
+//          redirection to DCL.  Written in SDCL.
+// 
+// Invocation command line options:
+// -DEBUG - Turns on debugging output.
+// -HELP - Displays this message and exits.
+// -INPUT=filename - Specifies file to  read commands from.
+// -TESTING - Also turns on debugging output.
+// -VERIFY - Turns on verification.
+// 
+// Pipes command line operators:
+// | -- Pipe symbol. Used to direct the output from one command to
+//      the next command.
+// > -- Output redirection symbol.  Used to direct the output from
+//      one command to a file.  Legal only on the end of a pipeline.
+// < -- Input redirection symbols.  Used to direct the command to take
+//      input from a file. Legal only on the beginning of a pipeline.
+// ? -- Error redirection symbols.  Used to direct the error output
+//      from a command to a file.
+// & -- Spawn a pipeline.
+// >> -- Append output to a file.
+// ?? -- Append error output to a file.
+// 
+// Note: i/o redirection doesn't work properly with DCL command procedures,
+// just actual executable programs.
+//
+// Example: 
+// PIPES> translit a-z @n <a.in | wordcount >words.out
+//      takes the input for the translit command from the file a.in
+//      and takes translit's output for the input for wordcount, and
+//      stores wordcount's output in words.out.
+// Commands: 
+// EXIT  -- Exit from PIPES.
+// TAKE  -- Take input from file.  Specify a file name after the command.
+// %     -- Read a literal line.  Used when quotes ("") or spaces or case
+//          of letters in command line is significant.
+// -h    -- This message.
+// Other -- Any valid DCL command with ALL required parameters and
+//          qualfiers specified.
+// 
+    return				#end of pipes_help_routine
+
+#### TAKE_FROM_FILE
+take_from_file:
+    file = f$search(input_file)		#make sure input file exists
+    if (file .eqs. "") {
+       wse "pipes: can't open input file `", input_file, "'"
+       return
+    }
+    open inf 'file'
+    error_resume = "non_interactive_resume" #resume for non interactive
+    done = false
+    do {
+       read \
+	  /end_of_file=end_file \
+	  /prompt="PIPES> " \
+	  inf \
+	  inl
+       gosub process_line
+       non_interactive_resume:
+    } while (.not. done)
+    end_file:
+    close inf
+    error_resume = "interactive_resume"	#resume for interactive
+    return
+
+
+###############################################################################
+####Option Subroutines
+###############################################################################
+
+###DEBUG and TESTING options -- turn on internal debugging messages
+OPT$deb:
+OPT$tes:
+   if (f$locate("~", opt) .ne. f$length(opt))
+      debug = false
+   else
+      debug = true
+   return
+
+OPT$hel:
+   gosub pipes_help_routine
+   exit (1 .or. (f$verify(save_verify_env) .and. 0))
+
+###INPUT option -- read input from a file
+OPT$inp:
+   p = f$locate("=", opt)
+   l = f$length(opt)
+   if (p .ne. 1) {
+      input_file = f$extract(p + 1, l, opt)
+      is_input_file = true
+   }
+   return
+
+###VERIFY option -- Set VERIFY
+### not really needed, since setting PIPES_VERIFY turns on internal verify now
+OPT$ver:
+   if (f$locate("~", opt) .ne. f$length(opt)) {
+      verify = 0
+   } else {
+      pipes_verify = 1
+      junk = f$verify(1)
+   }
+   return
+%%D 2
+#-h- sdcl.sdcl       1587  bin  12-aug-24 09:43:59  tkb ()
+%%E 2
+%%I 2
+#-h- sdcl.sdcl       1588  asc  12-aug-24 10:30:03  tkb ()
+%%E 2
+    verify_on = 'f$verify(0)'
+##----------------------------------------------------------------------------!
+##                      
+## Program:        SDCL.SDCL
+## Written By:     C. Paul Bond
+## Version:        2.01
+## Date:           2021-09-08
+##
+## Description:	
+##
+## This short SDCL program provides a default name for
+## the sdcl pre-processor.
+##
+## History:
+## Ver     When        Who  What
+## 1.00	   ??????      cpb  Initial version
+## 2.00    1988-10-12  tkb  Handle wild-cards and more than one file-spec, new SDCL
+## 2.01    2021-09-08  tkb  Adapt to current SDCL.
+##----------------------------------------------------------------------------!
+!> SDCL.SDCL -- provide default name and extension for the SDCL preprocessor
+    file = p1
+    switches = p2
+%%D 2
+    sdcl_processor = "$exe_lib:sdcl"
+%%E 2
+%%I 2
+    sdcl_processor = "$sdcl_dir:sdcl"
+%%E 2
+
+    if (f$extract(0, 1, file) .eqs. "-") {
+        switches = file
+        file = ""
+    }
+
+    if (file .eqs. "") {
+        inquire file "_SDCL file <''f$trnlnm("EDIT_FILE")'>"
+        if (file .eqs. "") file = f$trnlnm("EDIT_FILE")
+        if (file .eqs. "") exit (1 .or. (f$verify(verify_on) .and. 0))
+    }
+
+    define edit_file 'file'
+    write sys$output "Processing ''f$parse(file,,,"name")'"
+    file = f$parse(file, ".sdcl")
+    i = f$locate("]", file)
+    if (i .ne. f$length(file)) {
+        file = f$extract(i + 1, f$length(file), file)
+        i = f$locate("]", file)
+        if (i .ne. f$length(file)) 
+            file = f$extract(i + 1, f$length(file), file)
+    }
+
+
+    sdcl_processor 'file' 'switches'
+
+The_End:
+    exit (1 .or. (f$verify(verify_on) .and. 0))
+#-h- total.sdcl      2433  bin  12-aug-24 09:43:59  tkb ()
+!> TOTAL.SDCL -- Total up the hours in 'root'yyyymmdd.TIME (v1.1)
+###############################################################################
+# Description:
+#
+# TOTAL [alternate-date] [alternate-directory]
+#
+# If you specify an alternate date, TOTAL looks for the file for that date.
+# If you specify an alternate directory, TOTAL looks for the file in that 
+# directory.
+#
+# History, most recent first
+# Vers   When    Who  Why
+# 1.0    120688  TKB  Initial Version 
+# 1.1	 011989  TKB  Change to use TIME_LIB logical name as default for
+#		      where to find file.
+###############################################################################
+    sort_date = f$cvtime(p1,, "date") - "-" - "-" - "-" 
+
+    ##Find out what directory to put the output file in.
+    if (p2 .nes. "") {			#user specified alternate root
+        root = p2
+    } else {				#use defaults
+	time_lib = f$trnlnm("TIME_LIB")
+	if (time_lib .eqs. "") {
+	    root = "sys$disk:[]"	#use current device and directory
+	} else {
+	    root = time_lib		#use user defined library
+	}
+    }
+        
+
+    filename = root + sort_date + ".time"
+    if (f$search(filename) .eqs. "") {
+        write sys$output "total: error, file does not exist, ", filename
+	exit
+    }
+
+    ##open file 
+    open/read/error=Cant_Open inf 'filename'
+    ##read header
+    read inf line /end=Error_Reading /err=Error_Reading
+    while (f$locate("=====", line) .eq. f$length(line)) {
+	 read inf line /end=Error_Reading /err=Error_Reading
+	 ##write sys$output line
+    }
+
+    ##read and total hours
+    hours = 0
+    minutes = 0
+    total = 0
+    ##write sys$output "Starting to total..."
+    repeat {
+        read inf line /end=End_File /err=Error_Reading
+	##write sys$output line
+	if (f$locate("=====", line) .ne. f$length(line))
+	    break			#this is the total line
+	##write sys$output "Hours: ", f$extract(74, 2, line)
+	hours = f$integer(f$extract(74, 2, line))
+	##write sys$output "Minutes: ", f$extract(77, 2, line)
+	minutes = f$integer(f$extract(77, 2, line))
+	total = total + (hours * 60) + minutes
+    }
+End_File:
+    total_hours = total / 60
+    total_minutes = total - (total_hours * 60)
+    write sys$output f$fao("Total: !2ZL:!2ZL", total_hours, total_minutes)
+
+    close inf
+The_End:
+    exit
+
+
+Cant_Open:
+    write sys$output "total: error opening file, ", filename
+    exit
+
+Error_Reading:
+    write sys$output "total: error reading file, ", filename
+    close inf
+    exit
+%%I 2
+#-h- listsrcs.sh      107  asc  12-aug-24 09:54:25  tkb ()
+lr descrip.mms *.sdcl | tee ~usr/sdclex.lis | sedit 's/%{?+}$/ar uv sdclex.w $1/' | tee ~usr/initsdclex.sh
+%%I 3
+#-h- descrip.mms      247  asc  12-aug-24 10:34:50  tkb ()
+PROGRAMS=dirsize.com, hours.com, pipes.com, sdcl.com, total.com
+
+all : $(PROGRAMS)
+
+SDCL=rawsdcl ! use the executable directly.
+.SUFFIXES : .SDCL .COM
+
+.SDCL.COM : 
+        $(SDCL) -o $(MMS$TARGET) $(MMS$SOURCE)
+
+
+clean :
+        - delete *.com.*
+%%E 3
+%%E 2
+%%E 1
